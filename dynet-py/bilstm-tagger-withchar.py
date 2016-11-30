@@ -109,7 +109,6 @@ def build_tagging_graph(words):
 
     # get the word vectors. word_rep(...) returns a 128-dim vector expression for each word.
     wembs = [word_rep(w, cf_init, cb_init) for w in words]
-    wembs = [dy.noise(we,0.1) for we in wembs] # optional
 
     # feed word vectors into biLSTM
     fw_exps = f_init.transduce(wembs)
