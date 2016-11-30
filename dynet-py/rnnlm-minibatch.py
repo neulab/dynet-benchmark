@@ -113,7 +113,7 @@ def calc_lm_loss(sents):
     return dy.sum_batches(dy.esum(losses)), tot_words
 
 start = time.time()
-i = all_time = all_tagged = this_tagged = this_loss = 0
+i = all_time = all_tagged = this_words = this_loss = 0
 # Sort training sentences in descending order and count minibatches
 train.sort(key=lambda x: -len(x))
 test.sort(key=lambda x: -len(x))
@@ -126,9 +126,9 @@ for ITER in xrange(50):
         i += 1
         if i % (500/MB_SIZE) == 0:
             trainer.status()
-            print this_loss / this_tagged
-            all_tagged += this_tagged
-            this_tagged = this_loss = 0
+            print this_loss / this_words
+            all_tagged += this_words
+            this_words = this_loss = 0
         if i % (10000/MB_SIZE) == 0:
             all_time += time.time() - start
             dev_loss = dev_words = 0
@@ -142,7 +142,7 @@ for ITER in xrange(50):
         # train on the minibatch
         loss_exp, mb_words = calc_lm_loss(train[sid:sid+MB_SIZE])
         this_loss += loss_exp.scalar_value()
-        this_tagged += mb_words
+        this_words += mb_words
         loss_exp.backward()
         trainer.update()
     print "epoch %r finished" % ITER

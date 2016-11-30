@@ -13,43 +13,31 @@ train_file="data/text/train.txt"
 test_file="data/text/dev.txt"
 
 class Vocab:
-    def __init__(self, w2i=None):
-        if w2i is None: w2i = defaultdict(count(0).next)
-        self.w2i = dict(w2i)
-        self.i2w = {i:w for w,i in w2i.iteritems()}
-    @classmethod
-    def from_corpus(cls, corpus):
-        w2i = defaultdict(count(0).next)
-        for sent in corpus:
-            [w2i[word] for word in sent]
-        return Vocab(w2i)
+    def __init__(self):
+        self.w2i = defaultdict(count(0).next)
+        self.i2w = []
 
     def size(self): return len(self.w2i.keys())
 
-def read(fname):
+def read(fname, vw):
     """
     Read a file where each line is of the form "word1 word2 ..."
     Yields lists of the form [word1, word2, ...]
     """
     with file(fname) as fh:
         for line in fh:
-            sent = line.strip().split()
-            sent.append("<s>")
+            sent = [vw.w2i[x] for x in line.strip().split()]
+            sent.append(vw.w2i["<s>"])
             yield sent
 
-train=list(read(train_file))
-test=list(read(test_file))
-words=[]
-wc=Counter()
-for sent in train:
-    for w in sent:
-        words.append(w)
-        wc[w]+=1
-
-vw = Vocab.from_corpus([words])
+vw = Vocab()
+train=list(read(train_file, vw))
+nwords_train = vw.size()
+test=list(read(test_file, vw))
 S = vw.w2i["<s>"]
 
 nwords = vw.size()
+assert(nwords == nwords_train)
 
 # DyNet Starts
 
@@ -77,16 +65,12 @@ def calc_lm_loss(sent):
     # initialize the RNN
     f_init = RNN.initial_state()
 
-    # get the word ids
-    wids = [vw.w2i[w] for w in sent]
-    wembs = [dy.lookup(WORDS_LOOKUP, w) for w in wids]
-
     # start the rnn by inputting "<s>"
-    s = f_init.add_input(wembs[-1]) 
+    s = f_init.add_input(WORDS_LOOKUP[sent[-1]]) 
 
     # feed word vectors into the RNN and predict the next word
     losses = []
-    for wid in wids:
+    for wid in sent:
         # calculate the softmax and loss
         score = W_exp * s.output() + b_exp
         loss = dy.pickneglogsoftmax(score, wid)
@@ -97,16 +81,16 @@ def calc_lm_loss(sent):
     return dy.esum(losses)
 
 start = time.time()
-i = all_time = all_tagged = this_tagged = this_loss = 0
+i = all_time = all_tagged = this_words = this_loss = 0
 for ITER in xrange(50):
     random.shuffle(train)
     for s in train:
         i += 1
         if i % 500 == 0:
             trainer.status()
-            print this_loss / this_tagged
-            all_tagged += this_tagged
-            this_loss = this_tagged = 0
+            print this_loss / this_words
+            all_tagged += this_words
+            this_loss = this_words = 0
         if i % 10000 == 0:
             all_time += time.time() - start
             dev_loss = dev_words = 0
@@ -121,7 +105,7 @@ for ITER in xrange(50):
         # train on sent
         loss_exp = calc_lm_loss(s)
         this_loss += loss_exp.scalar_value()
-        this_tagged += len(s)
+        this_words += len(s)
         loss_exp.backward()
         trainer.update()
     trainer.update_epoch(1.0)
