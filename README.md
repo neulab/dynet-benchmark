@@ -13,3 +13,5 @@ in DyNet and Chainer, and
 * rnnlm
 * rnnlm-minibatch
 * bilstm-tagger
+
+in Theano and TensorFlow
