@@ -72,10 +72,6 @@ pO = model.add_parameters((ntags, 32))
 fwdRNN = dy.LSTMBuilder(1, 128, 50, model) # layers, in-dim, out-dim, model
 bwdRNN = dy.LSTMBuilder(1, 128, 50, model)
 
-# char-level LSTMs
-cFwdRNN = dy.LSTMBuilder(1, 20, 64, model)
-cBwdRNN = dy.LSTMBuilder(1, 20, 64, model)
-
 def word_rep(w):
     if wc[w] > 5:
         w_index = vw.w2i[w]
