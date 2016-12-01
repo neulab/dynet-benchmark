@@ -1,8 +1,11 @@
 
 DYNET_PATH=${HOME}/work/dynet
-CXX_FLAGS=-std=c++11 -I${DYNET_PATH} -L${DYNET_PATH}/build/dynet -lc++ -ldynet -g
+CXX_FLAGS=-std=c++11 -I${DYNET_PATH} -L${DYNET_PATH}/build/dynet -lc++ -ldynet -Ofast
 
 all: rnnlm rnnlm-batch
+
+clean:
+	rm rnnlm rnnlm-batch
 
 rnnlm: rnnlm.cc
 	${CC} ${CXX_FLAGS} -o rnnlm rnnlm.cc
