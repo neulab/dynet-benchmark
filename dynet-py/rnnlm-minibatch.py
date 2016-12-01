@@ -1,8 +1,8 @@
 from collections import Counter, defaultdict
 from itertools import count
-import math
 import random
 import time
+import math
 import sys
 
 import dynet as dy
@@ -14,19 +14,7 @@ test_file="data/text/dev.txt"
 
 MB_SIZE = 10
 
-class Vocab:
-    def __init__(self, w2i=None):
-        if w2i is None: w2i = defaultdict(count(0).next)
-        self.w2i = dict(w2i)
-        self.i2w = {i:w for w,i in w2i.iteritems()}
-    @classmethod
-    def from_corpus(cls, corpus):
-        w2i = defaultdict(count(0).next)
-        for sent in corpus:
-            [w2i[word] for word in sent]
-        return Vocab(w2i)
-
-    def size(self): return len(self.w2i.keys())
+w2i = defaultdict(count(0).next)
 
 def read(fname):
     """
@@ -35,23 +23,15 @@ def read(fname):
     """
     with file(fname) as fh:
         for line in fh:
-            sent = line.strip().split()
-            sent.append("<s>")
+            sent = [w2i[x] for x in line.strip().split()]
+            sent.append(w2i["<s>"])
             yield sent
 
 train=list(read(train_file))
+nwords = len(w2i)
 test=list(read(test_file))
-words=[]
-wc=Counter()
-for sent in train:
-    for w in sent:
-        words.append(w)
-        wc[w]+=1
-
-vw = Vocab.from_corpus([words])
-S = vw.w2i["<s>"]
-
-nwords = vw.size()
+S = w2i["<s>"]
+assert(nwords == len(w2i))
 
 # DyNet Starts
 
@@ -85,7 +65,7 @@ def calc_lm_loss(sents):
     masks = []
     for i in range(len(sents[0])):
         wids.append([
-          (vw.w2i[sent[i]] if len(sent)>i else S) for sent in sents])
+          (sent[i] if len(sent)>i else S) for sent in sents])
         mask = [(1 if len(sent)>i else 0) for sent in sents]
         masks.append(mask)
         tot_words += sum(mask)
@@ -94,10 +74,10 @@ def calc_lm_loss(sents):
     init_ids = [S] * len(sents)
     s = f_init.add_input(dy.lookup_batch(WORDS_LOOKUP,init_ids))
 
-    # feed word vectors into the RNN and predict the next word    
+    # feed word vectors into the RNN and predict the next word
     losses = []
     for wid, mask in zip(wids, masks):
-        # calculate the softmax and loss      
+        # calculate the softmax and loss
         score = W_exp * s.output() + b_exp
         loss = dy.pickneglogsoftmax_batch(score, wid)
         # mask the loss if at least one sentence is shorter
@@ -128,7 +108,7 @@ for ITER in xrange(50):
             trainer.status()
             print this_loss / this_words
             all_tagged += this_words
-            this_words = this_loss = 0
+            this_loss = this_words = 0
         if i % (10000/MB_SIZE) == 0:
             all_time += time.time() - start
             dev_loss = dev_words = 0

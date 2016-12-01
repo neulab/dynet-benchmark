@@ -12,32 +12,24 @@ import numpy as np
 train_file="data/text/train.txt"
 test_file="data/text/dev.txt"
 
-class Vocab:
-    def __init__(self):
-        self.w2i = defaultdict(count(0).next)
-        self.i2w = []
+w2i = defaultdict(count(0).next)
 
-    def size(self): return len(self.w2i.keys())
-
-def read(fname, vw):
+def read(fname):
     """
     Read a file where each line is of the form "word1 word2 ..."
     Yields lists of the form [word1, word2, ...]
     """
     with file(fname) as fh:
         for line in fh:
-            sent = [vw.w2i[x] for x in line.strip().split()]
-            sent.append(vw.w2i["<s>"])
+            sent = [w2i[x] for x in line.strip().split()]
+            sent.append(w2i["<s>"])
             yield sent
 
-vw = Vocab()
-train=list(read(train_file, vw))
-nwords_train = vw.size()
-test=list(read(test_file, vw))
-S = vw.w2i["<s>"]
-
-nwords = vw.size()
-assert(nwords == nwords_train)
+train=list(read(train_file))
+nwords = len(w2i)
+test=list(read(test_file))
+S = w2i["<s>"]
+assert(nwords == len(w2i))
 
 # DyNet Starts
 
