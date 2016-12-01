@@ -1,2 +1,4 @@
 *.swp
+*.dSYM
 dynet-cpp/rnnlm
+dynet-cpp/rnnlm-batch

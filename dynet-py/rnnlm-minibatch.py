@@ -119,6 +119,7 @@ for ITER in xrange(50):
             print ("nll=%.4f, ppl=%.4f, time=%.4f, word_per_sec=%.4f" % (dev_loss/dev_words, math.exp(dev_loss/dev_words), all_time, all_tagged/all_time))
             if all_time > 300:
                 sys.exit(0)
+            start = time.time()
         # train on the minibatch
         loss_exp, mb_words = calc_lm_loss(train[sid:sid+MB_SIZE])
         this_loss += loss_exp.scalar_value()

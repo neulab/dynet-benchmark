@@ -46,7 +46,7 @@ struct RNNLanguageModel {
     b_sm = model.add_parameters({vocab_size});
   }
 
-  Expression calc_lm_loss(const vector<int> & sent, ComputationGraph & cg) {
+  Expression calc_lm_loss(const vector<vector<int> > & sent, int pos, int mb_size, ComputationGraph & cg) {
   
     // parameters -> expressions
     Expression W_exp = parameter(cg, W_sm);
@@ -57,34 +57,70 @@ struct RNNLanguageModel {
     builder.start_new_sequence();
   
     // start the rnn by inputting "<s>"
-    Expression s = builder.add_input(lookup(cg, p_c, *sent.rbegin())); 
+    size_t tot_sents = min(sent.size()-pos, (size_t)mb_size);
+    vector<unsigned> start_input(tot_sents, 0);
+    Expression s = builder.add_input(lookup(cg, p_c, start_input)); 
+
+    // get the wids and masks for each step
+    int tot_words = 0;
+    vector<vector<unsigned> > wids(sent[pos].size(), vector<unsigned>(tot_sents));
+    vector<vector<float> > masks(sent[pos].size(), vector<float>(tot_sents));
+    for(size_t i = 0; i < sent[pos].size(); ++i) {
+      for(size_t j = 0; j < tot_sents; ++j) {
+        wids[i][j] = (sent[pos+j].size()>i ? sent[pos+j][i] : 0);
+        masks[i][j] = (sent[pos+j].size()>i ? 1.f : 0.f);
+      }
+    }
   
     // feed word vectors into the RNN and predict the next word
     vector<Expression> losses;
-    for(auto wid : sent) {
+    for(size_t i = 0; i < sent[pos].size(); ++i) {
       // calculate the softmax and loss
       Expression score = affine_transform({b_exp, W_exp, s});
-      Expression loss = pickneglogsoftmax(score, wid);
+      Expression loss = pickneglogsoftmax(score, wids[i]);
+      if(0.f == *masks[i].rbegin())
+        loss = cmult(loss, input(cg, Dim({1}, mb_size), masks[i]));
       losses.push_back(loss);
       // update the state of the RNN
-      s = builder.add_input(lookup(cg, p_c, wid));
+      s = builder.add_input(lookup(cg, p_c, wids[i]));
     }
     
-    return sum(losses);
+    return sum_batches(sum(losses));
   }
 
 };
 
+struct length_greater_then {
+    inline bool operator() (const vector<int> & struct1, const vector<int> & struct2) {
+        return (struct1.size() > struct2.size());
+    }
+};
+
+vector<int> prepare_minibatch(int mb_size, vector<vector<int> > & data) {
+  sort(data.begin(), data.end(), length_greater_then());
+  vector<int> ids;
+  for(size_t i = 0; i < data.size(); i += mb_size)
+    ids.push_back(i);
+  return ids;
+}
+
 int main(int argc, char** argv) {
+
+  int MB_SIZE = 10;
 
   // format of files: each line is "word1 word2 ..."
   string train_file = "data/text/train.txt";
   string test_file = "data/text/test.txt";
 
   Dict vw;
+  vw.convert("<s>");
   vector<vector<int> > train = read(train_file, vw);
   vw.freeze();
   vector<vector<int> > test = read(test_file, vw);
+  vector<int> train_ids = prepare_minibatch(MB_SIZE, train);
+  vector<int> test_ids = prepare_minibatch(MB_SIZE, test);
+  int test_words = 0;
+  for(auto & sent : test) test_words += sent.size();
 
   int nwords = vw.size();
 
@@ -96,39 +132,38 @@ int main(int argc, char** argv) {
   RNNLanguageModel rnnlm(1, 64, 128, nwords, model);
 
   time_point<system_clock> start = system_clock::now();
-  int i = 0, all_tagged = 0, this_words = 0;
+  int i = 0, all_words = 0, this_words = 0;
   float this_loss = 0.f, all_time = 0.f;
   for(int iter = 0; iter < 50; iter++) {
-    shuffle(train.begin(), train.end(), *dynet::rndeng);
-    for(auto & s : train) {
+    shuffle(train_ids.begin(), train_ids.end(), *dynet::rndeng);
+    for(auto sid : train_ids) {
       i++;
-      if(i % 500 == 0) {
+      if(i % (500/MB_SIZE) == 0) {
         trainer.status();
         cout << this_loss/this_words << endl;
-        all_tagged += this_words;
+        all_words += this_words;
         this_loss = 0.f;
         this_words = 0;
       }
-      if(i % 10000 == 0) {
+      if(i % (10000/MB_SIZE) == 0) {
         all_time += (system_clock::now() - start).count() / 1000000;
-        int test_words = 0;
         float test_loss = 0;
-        for(auto & sent : test) {
+        for(auto sentid : test_ids) {
           ComputationGraph cg;
-          Expression loss_exp = rnnlm.calc_lm_loss(sent, cg);
+          Expression loss_exp = rnnlm.calc_lm_loss(test, sentid, MB_SIZE, cg);
           test_loss += as_scalar(cg.forward(loss_exp));
-          test_words += sent.size();
         }
-        cout << "nll=" << test_loss/test_words << ", ppl=" << exp(test_loss/test_words) << ", time=" << all_time << ", word_per_sec=" << all_tagged/all_time << endl;
+        cout << "nll=" << test_loss/test_words << ", ppl=" << exp(test_loss/test_words) << ", time=" << all_time << ", word_per_sec=" << all_words/all_time << endl;
         if(all_time > 300)
           exit(0);
         start = system_clock::now();
       }
 
       ComputationGraph cg;
-      Expression loss_exp = rnnlm.calc_lm_loss(s, cg);
+      Expression loss_exp = rnnlm.calc_lm_loss(train, sid, MB_SIZE, cg);
       this_loss += as_scalar(cg.forward(loss_exp));
-      this_words += s.size();
+      for(size_t pos = sid; pos < min((size_t)sid+MB_SIZE, train.size()); ++pos)
+        this_words += train[pos].size();
       cg.backward(loss_exp);
       trainer.update();
     }
