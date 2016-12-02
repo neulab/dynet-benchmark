@@ -93,13 +93,56 @@ class TreeRNNBuilder(object):
         if decorate: tree._e = expr
         return expr
 
+class TreeLSTMBuilder(object):
+    def __init__(self, model, word_vocab, wdim, hdim):
+        self.WS = [model.add_parameters((hdim, wdim)) for _ in "iou"]
+        self.US = [model.add_parameters((hdim, 2*hdim)) for _ in "iou"]
+        self.UFS =[model.add_parameters((hdim, hdim)) for _ in "ff"]
+        self.BS = [model.add_parameters(hdim) for _ in "iouf"]
+        self.E = model.add_lookup_parameters((len(word_vocab),wdim))
+        self.w2i = word_vocab
+
+    def expr_for_tree(self, tree, decorate=False):
+        if tree.isleaf():
+            return self.E[self.w2i.get(tree.label,0)]
+        if len(tree.children) == 1:
+            assert(tree.children[0].isleaf())
+            emb = self.expr_for_tree(tree.children[0])
+            Wi,Wo,Wu   = [dy.parameter(w) for w in self.WS]
+            bi,bo,bu,_ = [dy.parameter(b) for b in self.BS]
+            i = dy.logistic(Wi*emb + bi)
+            o = dy.logistic(Wo*emb + bo)
+            u = dy.tanh(    Wu*emb + bu)
+            c = dy.cmult(i,u)
+            expr = dy.cmult(o,dy.tanh(c))
+            if decorate: tree._e = expr
+            return expr
+        assert(len(tree.children) == 2),tree.children[0]
+        e1 = self.expr_for_tree(tree.children[0], decorate)
+        e2 = self.expr_for_tree(tree.children[1], decorate)
+        Ui,Uo,Uu = [dy.parameter(u) for u in self.US]
+        Uf1,Uf2 = [dy.parameter(u) for u in self.UFS]
+        bi,bo,bu,bf = [dy.parameter(b) for b in self.BS]
+        e = dy.concatenate([e1,e2])
+        i = dy.logistic(Ui*e + bi)
+        o = dy.logistic(Uo*e + bo)
+        f1 = dy.logistic(Uf1*e1 + bf)
+        f2 = dy.logistic(Uf2*e2 + bf)
+        u = dy.tanh(    Uu*e + bu)
+        c = dy.cmult(i,u) + dy.cmult(f1,e1) + dy.cmult(f2,e2)
+        h = dy.cmult(o,dy.tanh(c))
+        expr = h
+        if decorate: tree._e = expr
+        return expr
+
 train = read_dataset("../data/trees/train.txt")
 dev = read_dataset("../data/trees/dev.txt")
 
 l2i, w2i, i2l, i2w = get_vocabs(train)
 
 model = dy.Model()
-builder = TreeRNNBuilder(model, w2i, 30)
+#builder = TreeRNNBuilder(model, w2i, 30)
+builder = TreeLSTMBuilder(model, w2i, 300, 30)
 W_ = model.add_parameters((len(l2i),30))
 trainer = dy.AdamTrainer(model)
 
