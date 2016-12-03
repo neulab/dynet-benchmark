@@ -135,8 +135,8 @@ class TreeLSTMBuilder(object):
         if decorate: tree._e = expr
         return expr
 
-train = read_dataset("../data/trees/train.txt")
-dev = read_dataset("../data/trees/dev.txt")
+train = read_dataset("data/trees/train.txt")
+dev = read_dataset("data/trees/dev.txt")
 
 l2i, w2i, i2l, i2w = get_vocabs(train)
 
@@ -160,8 +160,10 @@ for ITER in xrange(100):
         loss.backward()
         trainer.update()
         if i % 1000 == 0:
+            trainer.status()
             print closs / 1000
             closs = 0.0
+    trainer.update_epoch(1.0)
     good = bad = 0.0
     for tree in dev:
         dy.renew_cg()
