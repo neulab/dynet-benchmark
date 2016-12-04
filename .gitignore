@@ -2,3 +2,4 @@
 *.dSYM
 dynet-cpp/rnnlm
 dynet-cpp/rnnlm-batch
+dynet-cpp/recnn
