@@ -1,5 +1,6 @@
 import re
 import codecs
+import time
 from collections import Counter
 import random
 import numpy as np
@@ -141,28 +142,36 @@ dev = read_dataset("data/trees/dev.txt")
 l2i, w2i, i2l, i2w = get_vocabs(train)
 
 model = dy.Model()
-#builder = TreeRNNBuilder(model, w2i, 30)
+# builder = TreeRNNBuilder(model, w2i, 30)
 builder = TreeLSTMBuilder(model, w2i, 300, 30)
 W_ = model.add_parameters((len(l2i),30))
 trainer = dy.AdamTrainer(model)
 
+sents = 0
+all_time = 0
 for ITER in xrange(100):
     random.shuffle(train)
     closs = 0.0
+    cwords = 0
+    start = time.time()
     for i,tree in enumerate(train,1):
+        sents += 1
         dy.renew_cg()
         W = dy.parameter(W_)
         d = builder.expr_for_tree(tree,True)
         nodes = tree.nonterms()
         losses = [dy.pickneglogsoftmax(W*nt._e,l2i[nt.label]) for nt in nodes]
         loss = dy.esum(losses)
-        closs += loss.value()/len(nodes)
+        closs += loss.value()
+        cwords += len(nodes)
         loss.backward()
         trainer.update()
-        if i % 1000 == 0:
+        if sents % 1000 == 0:
             trainer.status()
-            print closs / 1000
+            print closs / cwords
             closs = 0.0
+            cwords = 0
+    all_time += time.time() - start
     trainer.update_epoch(1.0)
     good = bad = 0.0
     for tree in dev:
@@ -171,4 +180,4 @@ for ITER in xrange(100):
         pred = i2l[np.argmax((W*builder.expr_for_tree(tree,False)).npvalue())]
         if pred == tree.label: good += 1
         else: bad += 1
-    print "iter %s dev accuracy: %s" % (ITER, good/(good+bad))
+    print ("sent_acc=%.4f, time=%.4f, sent_per_sec=%.4f" % (good/(good+bad), all_time, sents/all_time))
