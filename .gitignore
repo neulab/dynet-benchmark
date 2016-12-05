@@ -3,3 +3,4 @@
 dynet-cpp/rnnlm
 dynet-cpp/rnnlm-batch
 dynet-cpp/recnn
+dynet-cpp/bilstm-tagger-withchar

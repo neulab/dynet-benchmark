@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
         this_loss = 0.f;
         this_words = 0;
       }
-      if(i % 10000 == 0) {
+      if(i % 5000 == 0) {
         all_time += (system_clock::now() - start).count() / 1000000;
         int test_words = 0;
         float test_loss = 0;

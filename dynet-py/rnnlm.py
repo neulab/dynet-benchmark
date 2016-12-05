@@ -83,7 +83,7 @@ for ITER in xrange(50):
             print this_loss / this_words
             all_tagged += this_words
             this_loss = this_words = 0
-        if i % 10000 == 0:
+        if i % 5000 == 0:
             all_time += time.time() - start
             dev_loss = dev_words = 0
             for sent in test:
