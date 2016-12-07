@@ -3,7 +3,7 @@ Benchmarks for DyNet
 
 Current goal is to have
 * rnnlm
-* rnnlm-minibatch
+* rnnlm-batch
 * treelstm
 * bilstm-tagger
 * bilstm-tagger-withchar (Character embeddings)
