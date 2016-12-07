@@ -17,8 +17,8 @@ EMBEDDING_DIM = 64
 LSTM_HIDDEN_DIM = 128
 
 
-train_file = '../data/text/train.txt'
-test_file = '../data/text/dev.txt'
+train_file = 'data/text/train.txt'
+test_file = 'data/text/dev.txt'
 
 w2i = defaultdict(count(0).next)
 

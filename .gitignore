@@ -1,5 +1,6 @@
 *.swp
 *.dSYM
+*.pyc
 dynet-cpp/rnnlm
 dynet-cpp/rnnlm-batch
 dynet-cpp/recnn
