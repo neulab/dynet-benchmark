@@ -164,15 +164,15 @@ class LSTM(Layer):
     def _step(self,
               xi_t, xf_t, xo_t, xc_t, mask_t,
               h_tm1, c_tm1,
-              u_i, u_f, u_o, u_c, b_u):
+              u_i, u_f, u_o, u_c):
 
-        i_t = self.inner_activation(xi_t + T.dot(h_tm1 * b_u[0], u_i))
-        f_t = self.inner_activation(xf_t + T.dot(h_tm1 * b_u[1], u_f))
-        c_t = f_t * c_tm1 + i_t * self.activation(xc_t + T.dot(h_tm1 * b_u[2], u_c))
-        o_t = self.inner_activation(xo_t + T.dot(h_tm1 * b_u[3], u_o))
+        i_t = self.inner_activation(xi_t + T.dot(h_tm1, u_i))
+        f_t = self.inner_activation(xf_t + T.dot(h_tm1, u_f))
+        c_t = f_t * c_tm1 + i_t * self.activation(xc_t + T.dot(h_tm1, u_c))
+        o_t = self.inner_activation(xo_t + T.dot(h_tm1, u_o))
         h_t = o_t * self.activation(c_t)
 
-        h_t = (1 - mask_t) * h_tm1 + mask_t * h_t
+        # h_t = (1 - mask_t) * h_tm1 + mask_t * h_t
 
         return h_t, c_t
 
@@ -180,23 +180,10 @@ class LSTM(Layer):
         mask = self.get_mask(mask, X)
         X = X.dimshuffle((1, 0, 2))
 
-        retain_prob = 1. - dropout
-        B_w = np.ones((4,), dtype=theano.config.floatX)
-        B_u = np.ones((4,), dtype=theano.config.floatX)
-        if dropout > 0:
-            if train:
-                B_w = srng.binomial((4, X.shape[1], self.input_dim), p=retain_prob,
-                    dtype=theano.config.floatX)
-                B_u = srng.binomial((4, X.shape[1], self.output_dim), p=retain_prob,
-                    dtype=theano.config.floatX)
-            else:
-                B_w *= retain_prob
-                B_u *= retain_prob
-
-        xi = T.dot(X * B_w[0], self.W_i) + self.b_i
-        xf = T.dot(X * B_w[1], self.W_f) + self.b_f
-        xc = T.dot(X * B_w[2], self.W_c) + self.b_c
-        xo = T.dot(X * B_w[3], self.W_o) + self.b_o
+        xi = T.dot(X, self.W_i) + self.b_i
+        xf = T.dot(X, self.W_f) + self.b_f
+        xc = T.dot(X, self.W_c) + self.b_c
+        xo = T.dot(X, self.W_o) + self.b_o
 
         if init_state:
             # (batch_size, output_dim)
@@ -211,7 +198,7 @@ class LSTM(Layer):
                 first_state,
                 T.unbroadcast(alloc_zeros_matrix(X.shape[1], self.output_dim), 1)
             ],
-            non_sequences=[self.U_i, self.U_f, self.U_o, self.U_c, B_u])
+            non_sequences=[self.U_i, self.U_f, self.U_o, self.U_c])
 
         if self.return_sequences:
             return outputs.dimshuffle((1, 0, 2))
