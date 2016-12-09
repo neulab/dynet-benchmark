@@ -172,7 +172,7 @@ class LSTM(Layer):
         o_t = self.inner_activation(xo_t + T.dot(h_tm1, u_o))
         h_t = o_t * self.activation(c_t)
 
-        # h_t = (1 - mask_t) * h_tm1 + mask_t * h_t
+        h_t = (1. - mask_t) * h_tm1 + mask_t * h_t
 
         return h_t, c_t
 
@@ -213,9 +213,9 @@ class LSTM(Layer):
             mask = T.ones((X.shape[0], X.shape[1]))
 
         mask = T.shape_padright(mask)  # (nb_samples, time, 1)
-        mask = T.addbroadcast(mask, -1)  # (time, nb_samples, 1)
+        # mask = T.addbroadcast(mask, -1)  # (time, nb_samples, 1)
         mask = mask.dimshuffle(1, 0, 2)  # (time, nb_samples, 1)
-        mask = mask.astype('int8')
+        # mask = mask.astype('int8')
 
         return mask
 

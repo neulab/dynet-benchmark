@@ -10,6 +10,7 @@ from itertools import chain
 from nn.layers.recurrent import LSTM
 from nn.layers.embeddings import Embedding
 from nn.optimizers import Adam
+from nn.initializations import uniform
 
 from collections import Counter, defaultdict
 from itertools import count
@@ -67,8 +68,8 @@ def build_graph():
     lstm = LSTM(EMBEDDING_DIM, LSTM_HIDDEN_DIM, return_sequences=True)
 
     # Softmax weights/biases on top of LSTM outputs
-    W_sm = theano.shared(np.random.uniform(low=-.5, high=.5, size=(LSTM_HIDDEN_DIM, vocab_size)), name='W_sm')
-    b_sm = theano.shared(np.random.uniform(low=-.5, high=.5, size=vocab_size), name='b_sm')
+    W_sm = uniform((LSTM_HIDDEN_DIM, vocab_size), scale=.5, name='W_sm')
+    b_sm = uniform(vocab_size, scale=.5, name='b_sm')
 
     # (batch_size, sentence_length)
     x = T.imatrix(name='sentence')
