@@ -146,7 +146,8 @@ int main(int argc, char** argv) {
         this_words = 0;
       }
       if(i % (10000/MB_SIZE) == 0) {
-        all_time += (system_clock::now() - start).count() / 1000000;
+        duration<float> fs = (system_clock::now() - start);
+        all_time += duration_cast<milliseconds>(fs).count() / float(1000);
         float test_loss = 0;
         for(auto sentid : test_ids) {
           ComputationGraph cg;

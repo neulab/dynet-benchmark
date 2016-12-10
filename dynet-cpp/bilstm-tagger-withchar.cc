@@ -176,7 +176,8 @@ int main(int argc, char**argv) {
         this_words = 0;
       }
       if(i % 10000 == 0) {
-        all_time += (system_clock::now() - start).count() / float(1000000);
+        duration<float> fs = (system_clock::now() - start);
+        all_time += duration_cast<milliseconds>(fs).count() / float(1000);
         int dev_words = 0, dev_good = 0;
         float dev_loss = 0;
         for(auto & sent : dev) {

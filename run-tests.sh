@@ -1,15 +1,17 @@
 #!/bin/bash
 
+DYNET_DIR=$HOME/work/dynet
+LD_LIBRARY_PATH=$DYNET_DIR/build/dynet
 PYTHON=python2.7
 DYNET_MEM=1024
 CHAINER_GPUID=0
 
-# Run python tests
-$PYTHON dynet-py/bilstm-tagger.py --dynet-mem $DYNET_MEM
-$PYTHON dynet-py/bilstm-tagger-withchar.py --dynet-mem $DYNET_MEM
-$PYTHON dynet-py/rnnlm.py --dynet-mem $DYNET_MEM
-$PYTHON dynet-py/rnnlm-batch.py --dynet-mem $DYNET_MEM
-$PYTHON dynet-py/recnn.py --dynet-mem $DYNET_MEM
+# # Run python tests
+# $PYTHON dynet-py/bilstm-tagger.py --dynet-mem $DYNET_MEM
+# $PYTHON dynet-py/bilstm-tagger-withchar.py --dynet-mem $DYNET_MEM
+# $PYTHON dynet-py/rnnlm.py --dynet-mem $DYNET_MEM
+# $PYTHON dynet-py/rnnlm-batch.py --dynet-mem $DYNET_MEM
+# $PYTHON dynet-py/recnn.py --dynet-mem $DYNET_MEM
 
 # Run C++ tests
 dynet-cpp/bilstm-tagger --dynet-mem $DYNET_MEM
@@ -18,6 +20,6 @@ dynet-cpp/rnnlm --dynet-mem $DYNET_MEM
 dynet-cpp/rnnlm-batch --dynet-mem $DYNET_MEM
 dynet-cpp/recnn --dynet-mem $DYNET_MEM
 
-# Run Chainer tests
-$PYTHON chainer/rnnlm.py $CHAINER_GPUID
-$PYTHON chainer/rnnlm-batch.py $CHAINER_GPUID
+# # Run Chainer tests
+# $PYTHON chainer/rnnlm.py $CHAINER_GPUID
+# $PYTHON chainer/rnnlm-batch.py $CHAINER_GPUID
