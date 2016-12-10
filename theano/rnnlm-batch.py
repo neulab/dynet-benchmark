@@ -109,7 +109,6 @@ def build_graph():
 def train_model():
     train_loss_func, test_loss_func = build_graph()
 
-    start = time.time()
     i = all_time = all_tagged = this_words = this_loss = 0
 
     # Sort training sentences in descending order and count minibatches
@@ -119,7 +118,8 @@ def train_model():
     test_order = [x * MB_SIZE for x in range(int((len(test) - 1) / MB_SIZE + 1))]
 
     # Perform training
-    for ITER in xrange(50):
+    start = time.time()
+    for ITER in xrange(10):
         random.shuffle(train_order)
         for sid in train_order:
             i += 1
@@ -142,7 +142,7 @@ def train_model():
 
                 print ("nll=%.4f, ppl=%.4f, time=%.4f, word_per_sec=%.4f" % (
                     dev_loss / dev_words, np.exp(dev_loss / dev_words), all_time, all_tagged / all_time))
-                if all_time > 300:
+                if all_time > 3600:
                     sys.exit(0)
                 start = time.time()
 

@@ -94,7 +94,7 @@ def calc_lm_loss(sent):
 
 start = time.time()
 i = all_time = all_tagged = this_words = this_loss = 0
-for ITER in xrange(50):
+for ITER in xrange(10):
   random.shuffle(train)
   trainer.alpha = init_alpha / (1.0 + ITER)
   for s in train:
@@ -111,7 +111,7 @@ for ITER in xrange(50):
         dev_loss += float(loss_exp.data)
         dev_words += len(sent)
       print("nll=%.4f, ppl=%.4f, time=%.4f, word_per_sec=%.4f" % (dev_loss/dev_words, math.exp(dev_loss/dev_words), all_time, all_tagged/all_time))
-      if all_time > 300:
+      if all_time > 3600:
         sys.exit(0)
       start = time.time()
     # train on sent

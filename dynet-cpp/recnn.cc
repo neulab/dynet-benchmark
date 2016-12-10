@@ -218,6 +218,7 @@ int main(int argc, char**argv) {
   dynet::initialize(argc, argv);
   Model model;
   AdamTrainer trainer(&model, 0.001);
+  trainer.sparse_updates_enabled = false;
 
   // Builder
   Parameter W_param = model.add_parameters({nonterm_voc.size(), 30});
@@ -226,7 +227,7 @@ int main(int argc, char**argv) {
 
   int i = 0, all_tagged = 0, this_nodes = 0;
   float this_loss = 0.f, all_time = 0.f;
-  for(int iter = 0; iter < 100; iter++) {
+  for(int iter = 0; iter < 50; iter++) {
     shuffle(train.begin(), train.end(), *dynet::rndeng);
     time_point<system_clock> start = system_clock::now();
     for(auto tree : train) {
@@ -263,5 +264,7 @@ int main(int argc, char**argv) {
       (nonterm_voc.convert(max_id) == tree->label ? good : bad)++;
     }
     cout << "accuracy=" << good/float(good+bad) << ", time=" << all_time << ", sent_per_sec=" << i/all_time << endl;
+    if(all_time > 3600)
+      exit(0);
   }
 }

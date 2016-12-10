@@ -149,7 +149,7 @@ trainer = dy.AdamTrainer(model)
 
 sents = 0
 all_time = 0
-for ITER in xrange(100):
+for ITER in xrange(50):
     random.shuffle(train)
     closs = 0.0
     cwords = 0
@@ -181,3 +181,5 @@ for ITER in xrange(100):
         if pred == tree.label: good += 1
         else: bad += 1
     print ("sent_acc=%.4f, time=%.4f, sent_per_sec=%.4f" % (good/(good+bad), all_time, sents/all_time))
+    if all_time > 3600:
+        sys.exit(0)
