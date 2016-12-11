@@ -250,7 +250,8 @@ int main(int argc, char**argv) {
         this_loss = 0; this_nodes = 0;
       }
     }
-    all_time += (system_clock::now() - start).count() / 1000000.f;
+    std::chrono::duration<float> fs = (system_clock::now() - start);
+    all_time += duration_cast<milliseconds>(fs).count() / float(1000);
     trainer.update_epoch(1.0);
     int good = 0, bad = 0;
     for(auto tree : dev) {

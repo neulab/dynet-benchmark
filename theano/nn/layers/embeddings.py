@@ -30,7 +30,7 @@ class Embedding(Layer):
             self.set_name(name)
 
     def get_output_mask(self, X):
-        return (T.ones_like(X) * (1 - T.eq(X, 0))).astype('int8')
+        return T.ones_like(X, dtype=theano.config.floatX) * (1. - T.eq(X, 0))
 
     def __call__(self, X, mask_zero=False):
         out = self.W[X]

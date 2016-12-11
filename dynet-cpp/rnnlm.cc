@@ -110,7 +110,8 @@ int main(int argc, char** argv) {
         this_words = 0;
       }
       if(i % 5000 == 0) {
-        all_time += (system_clock::now() - start).count() / 1000000;
+        duration<float> fs = (system_clock::now() - start);
+        all_time += duration_cast<milliseconds>(fs).count() / float(1000);
         int test_words = 0;
         float test_loss = 0;
         for(auto & sent : test) {
