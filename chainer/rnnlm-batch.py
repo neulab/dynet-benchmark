@@ -86,34 +86,32 @@ def calc_lm_loss(sents):
   # initialize the RNN
   lm.reset()
 
-  # get the wids and masks for each step
+  # get the wids for each step
   tot_words = 0
   wids = []
-  masks = []
   for i in range(len(sents[0])):
+    # Note: -1 is the default padding tag in Chainer.
     wids.append([
-      (sent[i] if len(sent)>i else S) for sent in sents])
+      (sent[i] if len(sent)>i else -1) for sent in sents])
     mask = [(1 if len(sent)>i else 0) for sent in sents]
-    masks.append(mask)
     tot_words += sum(mask)
-    
+
   # start the rnn by inputting "<s>"
   init_ids = [S] * len(sents)
   y = lm.add_input(makevar(init_ids))
 
   # feed word vectors into the RNN and predict the next word
   losses = []
-  for wid, mask in zip(wids, masks):
+  for wid in wids:
     # calculate the softmax and loss
     t = makevar(wid)
-    loss = F.softmax_cross_entropy(y, t) * len(sents)
-    #
-    # TODO: Implementing masking
-    #
+    # Note: Chainer calculates the average. We have to multiply the batch size
+    #       to adjust dynamic range of the loss.
+    loss = F.softmax_cross_entropy(y, t, normalize=False) * len(sents)
     losses.append(loss)
-    # update the state of the RNN        
+    # update the state of the RNN
     y = lm.add_input(t)
-  
+
   return sum(losses), tot_words
 
 start = time.time()
@@ -127,7 +125,7 @@ test_order = [x*MB_SIZE for x in range((len(test)-1)/MB_SIZE + 1)]
 for ITER in xrange(50):
   random.shuffle(train_order)
   trainer.alpha = init_alpha / (1.0 + ITER)
-  for sid in train_order: 
+  for sid in train_order:
     i += 1
     if i % (500/MB_SIZE) == 0:
       print(this_loss / this_words)
