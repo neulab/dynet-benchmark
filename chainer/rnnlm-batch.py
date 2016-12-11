@@ -6,6 +6,7 @@ import math
 import sys
 
 from chainer import Chain, Variable
+from chainer.optimizer import GradientClipping
 import chainer.functions as F
 import chainer.links as L
 import chainer.optimizers as O
@@ -76,6 +77,7 @@ init_alpha = 0.001
 trainer = O.Adam(init_alpha)
 trainer.use_cleargrads()
 trainer.setup(lm)
+trainer.add_hook(GradientClipping(5))
 
 # Build the language model graph
 #
