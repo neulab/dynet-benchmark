@@ -173,6 +173,7 @@ class LSTM(Layer):
         h_t = o_t * self.activation(c_t)
 
         h_t = (1. - mask_t) * h_tm1 + mask_t * h_t
+        c_t = (1. - mask_t) * c_tm1 + mask_t * c_t
 
         return h_t, c_t
 
@@ -254,7 +255,7 @@ class BiLSTM(Layer):
         if self.return_sequences:
             hidden_states = T.concatenate([hidden_states_forward, hidden_states_backward[:, ::-1, :]], axis=-1)
         else:
-            raise NotImplementedError()
+            hidden_states = T.concatenate([hidden_states_forward, hidden_states_backward], axis=-1)
 
         return hidden_states
 
