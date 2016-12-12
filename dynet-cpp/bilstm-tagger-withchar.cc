@@ -52,12 +52,12 @@ public:
     pO = model.add_parameters({ntags, 32});
     
     // word-level LSTMs
-    fwdRNN = VanillaLSTMBuilder(1, 128, 50, &model); // layers, in-dim, out-dim, model
-    bwdRNN = VanillaLSTMBuilder(1, 128, 50, &model);
+    fwdRNN = VanillaLSTMBuilder(1, 128, 50, model); // layers, in-dim, out-dim, model
+    bwdRNN = VanillaLSTMBuilder(1, 128, 50, model);
     
     // char-level LSTMs
-    cFwdRNN = VanillaLSTMBuilder(1, 20, 64, &model);
-    cBwdRNN = VanillaLSTMBuilder(1, 20, 64, &model);
+    cFwdRNN = VanillaLSTMBuilder(1, 20, 64, model);
+    cBwdRNN = VanillaLSTMBuilder(1, 20, 64, model);
   }
 
   Dict &wv, &cv, &tv;
@@ -155,7 +155,7 @@ int main(int argc, char**argv) {
   // DyNet Starts
   dynet::initialize(argc, argv);
   Model model;
-  AdamTrainer trainer(&model, 0.001);
+  AdamTrainer trainer(model, 0.001);
   trainer.sparse_updates_enabled = false;
 
   // Initilaize the tagger
