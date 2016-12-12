@@ -41,9 +41,9 @@ struct RNNLanguageModel {
   Parameter b_sm;
   VanillaLSTMBuilder builder;
   explicit RNNLanguageModel(unsigned layers, unsigned input_dim, unsigned hidden_dim, unsigned vocab_size, Model& model) : builder(layers, input_dim, hidden_dim, &model) {
-    p_c = model.add_lookup_parameters(vocab_size, {input_dim}); 
-    W_sm = model.add_parameters({vocab_size, hidden_dim});
-    b_sm = model.add_parameters({vocab_size});
+    p_c = model.add_lookup_parameters(vocab_size, {input_dim}, ParameterInitUniform(0.1)); 
+    W_sm = model.add_parameters({vocab_size, hidden_dim}, ParameterInitUniform(0.5));
+    b_sm = model.add_parameters({vocab_size}, ParameterInitUniform(0.5));
   }
 
   Expression calc_lm_loss(const vector<vector<int> > & sent, int pos, int mb_size, ComputationGraph & cg) {
