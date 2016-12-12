@@ -6,11 +6,10 @@ import math
 import sys
 
 from chainer import Chain, Variable
-from chainer.cuda import cupy, get_device
+from chainer.optimizer import GradientClipping
 import chainer.functions as F
 import chainer.links as L
 import chainer.optimizers as O
-import numpy as np
 
 if len(sys.argv) != 2:
   print("usage: %s (GPU-ID or -1 to use CPU)" % sys.argv[0])
@@ -58,19 +57,25 @@ class RNNLM(Chain):
     h = self.rnn(self.embed(x))
     return self.h2y(h)
 
-def makevar(arr):
-  xp = cupy if GPUID >= 0 else np
-  return Variable(xp.array(arr, dtype=xp.int32))
-
 lm = RNNLM()
+
 if GPUID >= 0:
+  # use GPU
+  from chainer.cuda import cupy as xp, get_device
   get_device(GPUID).use()
   lm.to_gpu()
+else:
+  # use CPU
+  import numpy as xp
+
+def makevar(arr):
+  return Variable(xp.array(arr, dtype=xp.int32))
 
 init_alpha = 0.001
 trainer = O.Adam(init_alpha)
 trainer.use_cleargrads()
 trainer.setup(lm)
+trainer.add_hook(GradientClipping(5))
 
 # Build the language model graph
 def calc_lm_loss(sent):

@@ -6,11 +6,10 @@ import math
 import sys
 
 from chainer import Chain, Variable
-from chainer.cuda import cupy, get_device
+from chainer.optimizer import GradientClipping
 import chainer.functions as F
 import chainer.links as L
 import chainer.optimizers as O
-import numpy as np
 
 if len(sys.argv) != 2:
   print("usage: %s (GPU-ID or -1 to use CPU)" % sys.argv[0])
@@ -60,19 +59,25 @@ class RNNLM(Chain):
     h = self.rnn(self.embed(x))
     return self.h2y(h)
 
-def makevar(arr):
-  xp = cupy if GPUID >= 0 else np
-  return Variable(xp.array(arr, dtype=xp.int32))
-
 lm = RNNLM()
+
 if GPUID >= 0:
+  # use GPU
+  from chainer.cuda import cupy as xp, get_device
   get_device(GPUID).use()
   lm.to_gpu()
+else:
+  # use CPU
+  import numpy as xp
+
+def makevar(arr):
+  return Variable(xp.array(arr, dtype=xp.int32))
 
 init_alpha = 0.001
 trainer = O.Adam(init_alpha)
 trainer.use_cleargrads()
 trainer.setup(lm)
+trainer.add_hook(GradientClipping(5))
 
 # Build the language model graph
 #
@@ -83,34 +88,32 @@ def calc_lm_loss(sents):
   # initialize the RNN
   lm.reset()
 
-  # get the wids and masks for each step
+  # get the wids for each step
   tot_words = 0
   wids = []
-  masks = []
   for i in range(len(sents[0])):
+    # Note: -1 is the default padding tag in Chainer.
     wids.append([
-      (sent[i] if len(sent)>i else S) for sent in sents])
+      (sent[i] if len(sent)>i else -1) for sent in sents])
     mask = [(1 if len(sent)>i else 0) for sent in sents]
-    masks.append(mask)
     tot_words += sum(mask)
-    
+
   # start the rnn by inputting "<s>"
   init_ids = [S] * len(sents)
   y = lm.add_input(makevar(init_ids))
 
   # feed word vectors into the RNN and predict the next word
   losses = []
-  for wid, mask in zip(wids, masks):
+  for wid in wids:
     # calculate the softmax and loss
     t = makevar(wid)
-    loss = F.softmax_cross_entropy(y, t) * len(sents)
-    #
-    # TODO: Implementing masking
-    #
+    # Note: Chainer calculates the average. We have to multiply the batch size
+    #       to adjust dynamic range of the loss.
+    loss = F.softmax_cross_entropy(y, t, normalize=False) * len(sents)
     losses.append(loss)
-    # update the state of the RNN        
+    # update the state of the RNN
     y = lm.add_input(t)
-  
+
   return sum(losses), tot_words
 
 i = all_time = all_tagged = this_words = this_loss = 0
@@ -124,7 +127,7 @@ start = time.time()
 for ITER in xrange(10):
   random.shuffle(train_order)
   trainer.alpha = init_alpha / (1.0 + ITER)
-  for sid in train_order: 
+  for sid in train_order:
     i += 1
     if i % (500/MB_SIZE) == 0:
       print(this_loss / this_words)
