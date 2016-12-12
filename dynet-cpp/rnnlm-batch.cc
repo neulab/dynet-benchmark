@@ -40,7 +40,7 @@ struct RNNLanguageModel {
   Parameter W_sm;
   Parameter b_sm;
   LSTMBuilder builder;
-  explicit RNNLanguageModel(unsigned layers, unsigned input_dim, unsigned hidden_dim, unsigned vocab_size, Model& model) : builder(layers, input_dim, hidden_dim, &model) {
+  explicit RNNLanguageModel(unsigned layers, unsigned input_dim, unsigned hidden_dim, unsigned vocab_size, Model& model) : builder(layers, input_dim, hidden_dim, model) {
     p_c = model.add_lookup_parameters(vocab_size, {input_dim}); 
     W_sm = model.add_parameters({vocab_size, hidden_dim});
     b_sm = model.add_parameters({vocab_size});
@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
   // DyNet Starts
   dynet::initialize(argc, argv);
   Model model;
-  AdamTrainer trainer(&model, 0.001);
+  AdamTrainer trainer(model, 0.001);
 
   RNNLanguageModel rnnlm(1, 64, 128, nwords, model);
 

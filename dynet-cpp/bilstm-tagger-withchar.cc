@@ -52,12 +52,12 @@ public:
     pO = model.add_parameters({ntags, 32});
     
     // word-level LSTMs
-    fwdRNN = LSTMBuilder(1, 128, 50, &model); // layers, in-dim, out-dim, model
-    bwdRNN = LSTMBuilder(1, 128, 50, &model);
+    fwdRNN = LSTMBuilder(1, 128, 50, model); // layers, in-dim, out-dim, model
+    bwdRNN = LSTMBuilder(1, 128, 50, model);
     
     // char-level LSTMs
-    cFwdRNN = LSTMBuilder(1, 20, 64, &model);
-    cBwdRNN = LSTMBuilder(1, 20, 64, &model);
+    cFwdRNN = LSTMBuilder(1, 20, 64, model);
+    cBwdRNN = LSTMBuilder(1, 20, 64, model);
   }
 
   Dict &wv, &cv, &tv;
@@ -155,7 +155,7 @@ int main(int argc, char**argv) {
   // DyNet Starts
   dynet::initialize(argc, argv);
   Model model;
-  AdamTrainer trainer(&model, 0.001);
+  AdamTrainer trainer(model, 0.001);
 
   // Initilaize the tagger
   BiLSTMTagger tagger(model, word_voc, char_voc, tag_voc, word_cnt);

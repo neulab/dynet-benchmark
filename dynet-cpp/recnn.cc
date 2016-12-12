@@ -217,7 +217,7 @@ int main(int argc, char**argv) {
   // DyNet Starts
   dynet::initialize(argc, argv);
   Model model;
-  AdamTrainer trainer(&model, 0.001);
+  AdamTrainer trainer(model, 0.001);
 
   // Builder
   Parameter W_param = model.add_parameters({nonterm_voc.size(), 30});
