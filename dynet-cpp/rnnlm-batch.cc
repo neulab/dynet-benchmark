@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
 
   // format of files: each line is "word1 word2 ..."
   string train_file = "data/text/train.txt";
-  string test_file = "data/text/test.txt";
+  string test_file = "data/text/dev.txt";
 
   Dict vw;
   vw.convert("<s>");
@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
           Expression loss_exp = rnnlm.calc_lm_loss(test, sentid, MB_SIZE, cg);
           test_loss += as_scalar(cg.forward(loss_exp));
         }
-        cout << "nll=" << test_loss/test_words << ", ppl=" << exp(test_loss/test_words) << ", time=" << all_time << ", word_per_sec=" << all_words/all_time << endl;
+        cout << "nll=" << test_loss/test_words << ", ppl=" << exp(test_loss/test_words) << ", words=" << test_words << ", time=" << all_time << ", word_per_sec=" << all_words/all_time << endl;
         if(all_time > 3600)
           exit(0);
         start = system_clock::now();

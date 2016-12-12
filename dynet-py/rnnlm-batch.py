@@ -116,7 +116,7 @@ for ITER in xrange(10):
                 loss_exp, mb_words = calc_lm_loss(test[sid:sid+MB_SIZE])
                 dev_loss += loss_exp.scalar_value()
                 dev_words += mb_words
-            print ("nll=%.4f, ppl=%.4f, time=%.4f, word_per_sec=%.4f" % (dev_loss/dev_words, math.exp(dev_loss/dev_words), all_time, all_tagged/all_time))
+            print ("nll=%.4f, ppl=%.4f, words=%r, time=%.4f, word_per_sec=%.4f" % (dev_loss/dev_words, math.exp(dev_loss/dev_words), dev_words, all_time, all_tagged/all_time))
             if all_time > 3600:
                 sys.exit(0)
             start = time.time()

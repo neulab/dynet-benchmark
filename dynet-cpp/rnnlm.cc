@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
 
   // format of files: each line is "word1 word2 ..."
   string train_file = "data/text/train.txt";
-  string test_file = "data/text/test.txt";
+  string test_file = "data/text/dev.txt";
 
   Dict vw;
   vector<vector<int> > train = read(train_file, vw);
@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
           test_loss += as_scalar(cg.forward(loss_exp));
           test_words += sent.size();
         }
-        cout << "nll=" << test_loss/test_words << ", ppl=" << exp(test_loss/test_words) << ", time=" << all_time << ", word_per_sec=" << all_tagged/all_time << endl;
+        cout << "nll=" << test_loss/test_words << ", ppl=" << exp(test_loss/test_words) << ", words=" << test_words << ", time=" << all_time << ", word_per_sec=" << all_tagged/all_time << endl;
         if(all_time > 3600)
           exit(0);
         start = system_clock::now();
