@@ -45,19 +45,22 @@ ll = T.log(T.nnet.softmax(score)).flatten()
 loss = - ll[y]
 
 params = [W_sm, b_sm]
-updates = Adam().get_updates(params, loss)
+updates = Adam(lr=0.001).get_updates(params, loss)
 
 train_func = theano.function([x, y], loss, updates=updates)
 test_func = theano.function([x], score)
 
 for ITER in range(100):
     # Perform training
-    random.shuffle(train)
+    # random.shuffle(train)
     train_loss = 0.0
     start = time.time()
-    for words, tag in train:
+    for i, (words, tag) in enumerate(train):
         my_loss = train_func(words, tag)
         train_loss += my_loss
+        # print(b_sm.get_value())
+        # if i > 5:
+        #     sys.exit(0)
 
     print("iter %r: train loss/sent=%.4f, time=%.2fs" % (ITER, train_loss/len(train), time.time()-start))
 
