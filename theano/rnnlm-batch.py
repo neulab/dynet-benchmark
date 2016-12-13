@@ -154,7 +154,7 @@ def train_model():
 
             batch_loss = train_loss_func(batch_sents_x)
             this_loss += batch_loss
-            print("loss @ %r: %r" % (i, this_loss))
+            # print("loss @ %r: %r" % (i, this_loss))
             mb_words = sum(len(s) for s in batch_sents)
             this_words += mb_words
 
