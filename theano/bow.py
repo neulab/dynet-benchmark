@@ -30,8 +30,8 @@ ntags = len(t2i)
 
 
 # Define the model
-W_sm = uniform((nwords, ntags), scale=0.1)  # Word weights
-b_sm = zero((ntags))                        # Softmax bias
+W_sm = zero((nwords, ntags))  # Word weights
+b_sm = zero((ntags))          # Softmax bias
 
 # bag of words input
 x = T.ivector('words')
