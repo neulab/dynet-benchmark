@@ -61,12 +61,12 @@ class SGD(Optimizer):
         self.lr = shared_scalar(lr)
         self.momentum = shared_scalar(momentum)
 
-    def get_updates(self, params, constraints, loss):
+    def get_updates(self, params, loss):
         grads = self.get_gradients(loss, params)
         lr = self.lr * (1.0 / (1.0 + self.decay * self.iterations))
         self.updates = [(self.iterations, self.iterations + 1.)]
 
-        for p, g, c in zip(params, grads, constraints):
+        for p, g in zip(params, grads):
             m = shared_zeros(p.get_value().shape)  # momentum
             v = self.momentum * m - lr * g  # velocity
             self.updates.append((m, v))
@@ -76,7 +76,7 @@ class SGD(Optimizer):
             else:
                 new_p = p + v
 
-            self.updates.append((p, c(new_p)))  # apply constraints
+            self.updates.append((p, new_p))
         return self.updates
 
     def get_config(self):
@@ -206,7 +206,7 @@ class Adam(Optimizer):
 
             self.updates.append((m, m_t))
             self.updates.append((v, v_t))
-            self.updates.append((p, p_t))  # apply constraints
+            self.updates.append((p, p_t))
 
         return self.updates
 
