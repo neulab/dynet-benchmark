@@ -52,19 +52,19 @@ public:
     pO = model.add_parameters({ntags, 32});
     
     // word-level LSTMs
-    fwdRNN = LSTMBuilder(1, 128, 50, model); // layers, in-dim, out-dim, model
-    bwdRNN = LSTMBuilder(1, 128, 50, model);
+    fwdRNN = VanillaLSTMBuilder(1, 128, 50, model); // layers, in-dim, out-dim, model
+    bwdRNN = VanillaLSTMBuilder(1, 128, 50, model);
     
     // char-level LSTMs
-    cFwdRNN = LSTMBuilder(1, 20, 64, model);
-    cBwdRNN = LSTMBuilder(1, 20, 64, model);
+    cFwdRNN = VanillaLSTMBuilder(1, 20, 64, model);
+    cBwdRNN = VanillaLSTMBuilder(1, 20, 64, model);
   }
 
   Dict &wv, &cv, &tv;
   unordered_map<string,int> & wc;
   LookupParameter word_lookup, char_lookup;
   Parameter p_t1, pH, pO;
-  LSTMBuilder fwdRNN, bwdRNN, cFwdRNN, cBwdRNN;
+  VanillaLSTMBuilder fwdRNN, bwdRNN, cFwdRNN, cBwdRNN;
 
   // Do word representation 
   Expression word_rep(ComputationGraph & cg, const string & w) {
@@ -156,6 +156,7 @@ int main(int argc, char**argv) {
   dynet::initialize(argc, argv);
   Model model;
   AdamTrainer trainer(model, 0.001);
+  trainer.sparse_updates_enabled = false;
 
   // Initilaize the tagger
   BiLSTMTagger tagger(model, word_voc, char_voc, tag_voc, word_cnt);
@@ -164,7 +165,7 @@ int main(int argc, char**argv) {
   time_point<system_clock> start = system_clock::now();
   int i = 0, all_tagged = 0, this_words = 0;
   float this_loss = 0.f, all_time = 0.f;
-  for(int iter = 0; iter < 50; iter++) {
+  for(int iter = 0; iter < 10; iter++) {
     shuffle(train.begin(), train.end(), *dynet::rndeng);
     for(auto & s : train) {
       i++;
@@ -188,7 +189,7 @@ int main(int argc, char**argv) {
           dev_words += sent.second.size();
         }
         cout << "acc=" << dev_good/float(dev_words) << ", time=" << all_time << ", word_per_sec=" << all_tagged/all_time << endl;
-        if(all_time > 300)
+        if(all_time > 3600)
           exit(0);
         start = system_clock::now();
       }

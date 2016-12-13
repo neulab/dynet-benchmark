@@ -12,7 +12,7 @@ import chainer.links as L
 import chainer.optimizers as O
 
 if len(sys.argv) != 2:
-  print("usage: %s (GOU-ID or -1 to use CPU)" % sys.argv[0])
+  print("usage: %s (GPU-ID or -1 to use CPU)" % sys.argv[0])
   sys.exit(1)
 
 GPUID = int(sys.argv[1])
@@ -116,7 +116,6 @@ def calc_lm_loss(sents):
 
   return sum(losses), tot_words
 
-start = time.time()
 i = all_time = all_tagged = this_words = this_loss = 0
 # Sort training sentences in descending order and count minibatches
 train.sort(key=lambda x: -len(x))
@@ -124,7 +123,8 @@ test.sort(key=lambda x: -len(x))
 train_order = [x*MB_SIZE for x in range((len(train)-1)/MB_SIZE + 1)]
 test_order = [x*MB_SIZE for x in range((len(test)-1)/MB_SIZE + 1)]
 # Perform training
-for ITER in xrange(50):
+start = time.time()
+for ITER in xrange(10):
   random.shuffle(train_order)
   trainer.alpha = init_alpha / (1.0 + ITER)
   for sid in train_order:
@@ -140,8 +140,8 @@ for ITER in xrange(50):
         loss_exp, mb_words = calc_lm_loss(test[sid:sid+MB_SIZE])
         dev_loss += float(loss_exp.data)
         dev_words += mb_words
-      print("nll=%.4f, ppl=%.4f, time=%.4f, word_per_sec=%.4f" % (dev_loss/dev_words, math.exp(dev_loss/dev_words), all_time, all_tagged/all_time))
-      if all_time > 300:
+      print("nll=%.4f, ppl=%.4f, words=%r, time=%.4f, word_per_sec=%.4f" % (dev_loss/dev_words, math.exp(dev_loss/dev_words), dev_words, all_time, all_tagged/all_time))
+      if all_time > 3600:
         sys.exit(0)
       start = time.time()
     # train on the minibatch

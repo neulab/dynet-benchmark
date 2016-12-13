@@ -39,11 +39,11 @@ struct RNNLanguageModel {
   LookupParameter p_c;
   Parameter W_sm;
   Parameter b_sm;
-  LSTMBuilder builder;
+  VanillaLSTMBuilder builder;
   explicit RNNLanguageModel(unsigned layers, unsigned input_dim, unsigned hidden_dim, unsigned vocab_size, Model& model) : builder(layers, input_dim, hidden_dim, model) {
-    p_c = model.add_lookup_parameters(vocab_size, {input_dim}); 
-    W_sm = model.add_parameters({vocab_size, hidden_dim});
-    b_sm = model.add_parameters({vocab_size});
+    p_c = model.add_lookup_parameters(vocab_size, {input_dim}, ParameterInitUniform(0.1)); 
+    W_sm = model.add_parameters({vocab_size, hidden_dim}, ParameterInitUniform(0.5));
+    b_sm = model.add_parameters({vocab_size}, ParameterInitUniform(0.5));
   }
 
   Expression calc_lm_loss(const vector<vector<int> > & sent, int pos, int mb_size, ComputationGraph & cg) {
@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
 
   // format of files: each line is "word1 word2 ..."
   string train_file = "data/text/train.txt";
-  string test_file = "data/text/test.txt";
+  string test_file = "data/text/dev.txt";
 
   Dict vw;
   vw.convert("<s>");
@@ -128,13 +128,14 @@ int main(int argc, char** argv) {
   dynet::initialize(argc, argv);
   Model model;
   AdamTrainer trainer(model, 0.001);
+  trainer.sparse_updates_enabled = false;
 
   RNNLanguageModel rnnlm(1, 64, 128, nwords, model);
 
   time_point<system_clock> start = system_clock::now();
   int i = 0, all_words = 0, this_words = 0;
   float this_loss = 0.f, all_time = 0.f;
-  for(int iter = 0; iter < 50; iter++) {
+  for(int iter = 0; iter < 10; iter++) {
     shuffle(train_ids.begin(), train_ids.end(), *dynet::rndeng);
     for(auto sid : train_ids) {
       i++;
@@ -154,8 +155,8 @@ int main(int argc, char** argv) {
           Expression loss_exp = rnnlm.calc_lm_loss(test, sentid, MB_SIZE, cg);
           test_loss += as_scalar(cg.forward(loss_exp));
         }
-        cout << "nll=" << test_loss/test_words << ", ppl=" << exp(test_loss/test_words) << ", time=" << all_time << ", word_per_sec=" << all_words/all_time << endl;
-        if(all_time > 300)
+        cout << "nll=" << test_loss/test_words << ", ppl=" << exp(test_loss/test_words) << ", words=" << test_words << ", time=" << all_time << ", word_per_sec=" << all_words/all_time << endl;
+        if(all_time > 3600)
           exit(0);
         start = system_clock::now();
       }

@@ -149,7 +149,7 @@ def tag_sent(words):
 
 start = time.time()
 i = all_time = all_tagged = this_tagged = this_loss = 0
-for ITER in xrange(50):
+for ITER in xrange(10):
     random.shuffle(train)
     for s in train:
         i += 1
@@ -171,7 +171,7 @@ for ITER in xrange(50):
                     if go == gu: good += 1
                     else: bad += 1
             print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), all_time, all_tagged/all_time))
-            if all_time > 300:
+            if all_time > 3600:
                 sys.exit(0)
             start = time.time()
         # train on sent
