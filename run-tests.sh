@@ -26,6 +26,6 @@ dynet-cpp/rnnlm-batch --dynet-mem $DYNET_MEM
 # $PYTHON -u chainer/rnnlm.py $CHAINER_GPUID
 # $PYTHON -u chainer/rnnlm-batch.py $CHAINER_GPUID
 
-# # # Run Theano tests
+# Run Theano tests
 # THEANO_FLAGS=device=gpu3,floatX=float32 $PYTHON -u theano/rnnlm-batch.py 10
 
