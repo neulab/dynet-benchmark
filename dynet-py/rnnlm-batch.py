@@ -125,7 +125,7 @@ for ITER in xrange(10):
         # train on the minibatch
         loss_exp, mb_words = calc_lm_loss(train[sid:sid+MB_SIZE])
         this_loss += loss_exp.scalar_value()
-        print("loss @ %r: %r" % (i, this_loss))
+        # print("loss @ %r: %r" % (i, this_loss))
         this_words += mb_words
         loss_exp.backward()
         trainer.update()

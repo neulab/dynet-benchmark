@@ -4,7 +4,8 @@ CUDA_PATH=/usr/local/cuda-7.5
 DYNET_PATH=$HOME/work/dynet-vanilla
 LD_LIBRARY_PATH=$DYNET_PATH/build/dynet:$CUDA_PATH/lib64
 LIBRARY_PATH=$DYNET_PATH/build/dynet:$CUDA_PATH/lib64
-PYTHON=python
+PYTHONPATH=$DYNET_PATH/build/python
+PYTHON=python2.7
 DYNET_MEM=512
 CHAINER_GPUID=0
 
@@ -12,7 +13,7 @@ CHAINER_GPUID=0
 # $PYTHON -u dynet-py/bilstm-tagger.py --dynet-mem $DYNET_MEM
 # $PYTHON -u dynet-py/bilstm-tagger-withchar.py --dynet-mem $DYNET_MEM
 # $PYTHON -u dynet-py/rnnlm.py --dynet-mem $DYNET_MEM
-# $PYTHON -u dynet-py/rnnlm-batch.py --dynet-mem $DYNET_MEM
+$PYTHON -u dynet-py/rnnlm-batch.py --dynet-mem $DYNET_MEM
 # $PYTHON -u dynet-py/recnn.py --dynet-mem $DYNET_MEM
 
 # Run C++ tests
@@ -27,5 +28,5 @@ CHAINER_GPUID=0
 # $PYTHON -u chainer/rnnlm-batch.py $CHAINER_GPUID
 
 # Run Theano tests
-THEANO_FLAGS=device=cpu,floatX=float32 $PYTHON -u theano/rnnlm-batch.py 10
+# THEANO_FLAGS=device=cpu,floatX=float32 $PYTHON -u theano/rnnlm-batch.py 10
 
