@@ -109,7 +109,7 @@ def main(_):
     for s in train:
       i += 1
       if i % 500 == 0:
-        print sum(train_losses) / train_words
+        print "Updates so far:", i, "Loss:" , sum(train_losses) / train_words
         all_tagged += train_words
         train_losses = []
         train_words = 0

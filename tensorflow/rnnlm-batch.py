@@ -52,7 +52,7 @@ else:
   train_order = range(len(train))
   test_order = range(len(test))
 
-
+### Incomplete batch - FIX?
 
 
 max_length = len(max(train, key=len))
@@ -83,13 +83,16 @@ def main(_):
 
   # input sentence placeholder
   x_input = tf.placeholder(tf.int32, [args.minibatch_size, max_length], name="x_input")
+  mask_input = tf.placeholder(tf.float32, [args.minibatch_size, max_length], name="mask_input")
+
   # initialize the RNN
   initial_state = cell.zero_state(args.minibatch_size, tf.float32)
 
 
   # start the rnn by inputting "<s>"
-  # print x.get_shape() => (64,83)
+  # print x.get_shape() => (mb_size, max_length)
   x = tf.unstack(x_input, num=max_length, axis=1)
+
   cell_output, state = cell(tf.squeeze(tf.nn.embedding_lookup(WORDS_LOOKUP, x[-1])), initial_state)
   # feed word vectors into the RNN and produce the LSTM outputs
   outputs = []
@@ -104,17 +107,16 @@ def main(_):
 
   # Compute the unnormalized log distribution for each word for each sent in the batch
 
-
   output = tf.reshape(tf.concat(1, outputs), [-1, args.hidden_dim])
 
 
   logits = tf.matmul(tf.squeeze(output), W_sm) + b_sm
   # calculate the loss
   logits_as_list = tf.split(0, max_length, logits)
-
-
-  # loss_weights = [tf.ones([1]) for i in range(max_length)]
-  loss_weights = tf.unstack(tf.ones(shape=(args.minibatch_size, max_length)), axis=1)
+  
+  # Mask loss weights using input mask
+  loss_weights = tf.mul(tf.ones(shape=(args.minibatch_size, max_length)), mask_input)
+  loss_weights = tf.unstack(loss_weights,axis=1)
 
   x = tf.stack(x, axis=1)
 
@@ -138,13 +140,13 @@ def main(_):
   for ITER in xrange(args.epochs):
     random.shuffle(train_order)
     for i,sid in enumerate(train_order, start=1):
-      if i % 5 == 0:
-        print "Loss:" , sum(train_losses) / train_words
+      if i % (500/args.minibatch_size) == 0:
+        print "Updates so far:", (i-1)*(args.minibatch_size), "Loss:" , sum(train_losses) / train_words
         all_tagged += train_words
         train_losses = []
         train_words = 0
 
-      if i % 50 == 0:
+      if i % (10000/args.minibatch_size) == 0:
         test_losses = []
         test_words = 0
         all_time += time.time() - start
@@ -153,7 +155,8 @@ def main(_):
         for tid in test_order:
           t_examples = test[tid:tid+args.minibatch_size]
           x_in = [pad(example, S, max_length) for example in t_examples]
-          test_loss = sess.run(loss, feed_dict={x_input: x_in})
+          masks = [[1.0] * len(example) + [0.0] * (max_length - len(example)) for example in examples]
+          test_loss = sess.run(loss, feed_dict={x_input: x_in, mask_input: masks})
           tot_words = sum([len(t_example) for t_example in t_examples])
           test_losses.append(test_loss * tot_words)
           test_words += tot_words
@@ -166,7 +169,8 @@ def main(_):
       # train on sent
       examples = train[sid : sid+args.minibatch_size]
       x_in = [pad(example, S, max_length) for example in examples]
-      train_loss, _ = sess.run([loss, optimizer], feed_dict={x_input: x_in})
+      masks = [[1.0] * len(example) + [0.0] * (max_length - len(example)) for example in examples]
+      train_loss, _ = sess.run([loss, optimizer], feed_dict={x_input: x_in, mask_input: masks})
       tot_words = sum([len(example) for example in examples])
       train_losses.append(train_loss * tot_words)
       train_words += tot_words
