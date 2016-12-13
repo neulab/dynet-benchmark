@@ -7,12 +7,23 @@ import sys
 
 import numpy as np
 import tensorflow as tf
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--num_layers", default=1, type=int)
+parser.add_argument("--input_dim", default=64, type=int)
+parser.add_argument("--hidden_dim", default=128, type=int)
+parser.add_argument("--epochs", default=10, type=int)
+parser.add_argument("--minibatch_size", default=10, type=int)
+parser.add_argument("--learning_rate", default=1.0, type=int)
+args = parser.parse_args()
+print "ARGS:", args
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
-train_file='data/text/train.txt'
-test_file='data/text/dev.txt'
-
+train_file='../data/text/train.txt'
+test_file='../data/text/dev.txt'
 w2i = defaultdict(count(0).next)
+eos = '<s>'
 
 def read(fname):
   """
@@ -22,13 +33,13 @@ def read(fname):
   with file(fname) as fh:
     for line in fh:
       sent = [w2i[x] for x in line.strip().split()]
-      sent.append(w2i["<s>"])
+      sent.append(w2i[eos])
       yield sent
 
 train = list(read(train_file))
 nwords = len(w2i)
 test = list(read(test_file))
-S = w2i['<s>']
+S = w2i[eos]
 assert(nwords == len(w2i))
 
 max_length = len(max(train, key=len))
@@ -43,14 +54,15 @@ def main(_):
   # TODO: What is the dynet initializer?
 
   # Lookup parameters for word embeddings
-  WORDS_LOOKUP = tf.Variable(tf.random_uniform([nwords, 1, 64], -1.0, 1.0))
+  WORDS_LOOKUP = tf.Variable(tf.random_uniform([nwords, 1, args.input_dim], -1.0, 1.0))
 
-  # Word-level LSTM (one layer, input is unspecified,
+  # Word-level LSTM (configurable number of layers, input is unspecified,
   # but will be equal to the embedding dim, output=128)
-  cell = tf.nn.rnn_cell.BasicLSTMCell(128) 
+  cell = tf.nn.rnn_cell.BasicLSTMCell(args.hidden_dim) 
+  cell = tf.nn.rnn_cell.MultiRNNCell([cell] * args.num_layers, state_is_tuple=True)
 
   # Softmax weights/biases on top of LSTM outputs
-  W_sm = tf.Variable(tf.random_uniform([128, nwords]))
+  W_sm = tf.Variable(tf.random_uniform([args.hidden_dim, nwords]))
   b_sm = tf.Variable(tf.random_uniform([nwords]))
 
   # input sentence placeholder
@@ -92,7 +104,7 @@ def main(_):
   train_losses = [] 
   start = time.time()
   i = all_time = all_tagged = train_words = 0
-  for ITER in xrange(50):
+  for ITER in xrange(args.epochs):
     random.shuffle(train)
     for s in train:
       i += 1
@@ -113,7 +125,7 @@ def main(_):
           test_losses.append(test_loss * len(example))
           test_words += len(example)
         nll = sum(test_losses) / test_words
-        print >>sys.stderr, 'nll=%.4f, ppl=%.4f, time=%.4f, word_per_sec=%.4f' % (nll, math.exp(nll), all_time, all_tagged/all_time)
+        print >>sys.stderr, 'nll=%.4f, ppl=%.4f, time=%.4f, words_per_sec=%.4f' % (nll, math.exp(nll), all_time, all_tagged/all_time)
         if all_time > 300:
           sys.exit(0)
         start = time.time()
