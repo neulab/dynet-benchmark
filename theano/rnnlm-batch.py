@@ -78,7 +78,7 @@ def build_graph():
     sent_embed, sent_mask = embedding_table(x, mask_zero=True)
 
     lstm_input = T.set_subtensor(T.zeros_like(sent_embed)[:, 1:, :], sent_embed[:, :-1, :])
-    lstm_input = T.set_subtensor(lstm_input[:, 0, :], sent_embed[:, -1, :])
+    lstm_input = T.set_subtensor(lstm_input[:, 0, :], embedding_table(S)[None, :])
 
     # (batch_size, sentence_length, output_dim)
     lstm_output = lstm(lstm_input)
