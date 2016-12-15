@@ -9,7 +9,7 @@ from itertools import chain
 
 from nn.layers.recurrent import LSTM
 from nn.layers.embeddings import Embedding
-from nn.optimizers import Adam
+from nn.optimizers import Adam, SGD
 from nn.initializations import uniform
 
 from collections import Counter, defaultdict
@@ -65,7 +65,7 @@ def build_graph():
     # Lookup parameters for word embeddings
     embedding_table = Embedding(vocab_size, EMBEDDING_DIM)
 
-    lstm = LSTM(EMBEDDING_DIM, LSTM_HIDDEN_DIM, return_sequences=True)
+    lstm = LSTM(EMBEDDING_DIM, LSTM_HIDDEN_DIM, inner_init="identity", return_sequences=True)
 
     # Softmax weights/biases on top of LSTM outputs
     W_sm = uniform((LSTM_HIDDEN_DIM, vocab_size), scale=.5, name='W_sm')
@@ -99,7 +99,8 @@ def build_graph():
     loss = loss.sum()
 
     params = embedding_table.params + lstm.params + [W_sm, b_sm]
-    updates = Adam().get_updates(params, loss)
+    updates = Adam(lr=0.001).get_updates(params, loss)
+    # updates = SGD(lr=0.01).get_updates(params, loss)
     train_loss_func = theano.function([x], loss, updates=updates)
     test_loss_func = theano.function([x], loss)
 
@@ -153,6 +154,7 @@ def train_model():
 
             batch_loss = train_loss_func(batch_sents_x)
             this_loss += batch_loss
+            # print("loss @ %r: %r" % (i, this_loss))
             mb_words = sum(len(s) for s in batch_sents)
             this_words += mb_words
 

@@ -2,12 +2,12 @@
 
 CUDA_PATH=/usr/local/cuda-7.5
 EIGEN_PATH=${HOME}/usr/local/eigen
-DYNET_PATH=${HOME}/work/dynet
+DYNET_PATH=${HOME}/work/dynet-vanilla
 
 # *** CPU
-# DYNET_LIB=-ldynet
+DYNET_LIB=-ldynet
 # *** GPU
-DYNET_LIB=-lgdynet -ldynetcuda -L${CUDA_PATH}/lib64 -lcublas -lcudart
+# DYNET_LIB=-lgdynet -ldynetcuda -L${CUDA_PATH}/lib64 -lcublas -lcudart
 
 # *** Mac
 # CXX_FLAGS=-std=c++11 -I${EIGEN_PATH} -I${DYNET_PATH} -L${DYNET_PATH}/build/dynet -lc++ ${DYNET_LIB} -Ofast

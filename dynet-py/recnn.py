@@ -146,6 +146,8 @@ model = dy.Model()
 builder = TreeLSTMBuilder(model, w2i, 300, 30)
 W_ = model.add_parameters((len(l2i),30))
 trainer = dy.AdamTrainer(model)
+trainer.set_clip_threshold(-1.0)
+trainer.set_sparse_updates(False)
 
 sents = 0
 all_time = 0

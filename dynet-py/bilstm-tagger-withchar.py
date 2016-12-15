@@ -65,6 +65,8 @@ print ("nwords=%r, ntags=%r, nchars=%r" % (nwords, ntags, nchars))
 
 model = dy.Model()
 trainer = dy.AdamTrainer(model)
+trainer.set_clip_threshold(-1.0)
+trainer.set_sparse_updates(False)
 
 WORDS_LOOKUP = model.add_lookup_parameters((nwords, 128))
 CHARS_LOOKUP = model.add_lookup_parameters((nchars, 20))

@@ -129,6 +129,7 @@ int main(int argc, char** argv) {
   Model model;
   AdamTrainer trainer(model, 0.001);
   trainer.sparse_updates_enabled = false;
+  trainer.clipping_enabled = false;
 
   RNNLanguageModel rnnlm(1, 64, 128, nwords, model);
 

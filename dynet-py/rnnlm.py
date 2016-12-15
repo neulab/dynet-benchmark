@@ -35,12 +35,14 @@ assert(nwords == len(w2i))
 
 model = dy.Model()
 trainer = dy.AdamTrainer(model)
+trainer.set_clip_threshold(-1.0)
+trainer.set_sparse_updates(False)
 
 # Lookup parameters for word embeddings
 WORDS_LOOKUP = model.add_lookup_parameters((nwords, 64))
 
 # Word-level LSTM (layers=1, input=64, output=128, model)
-RNN = dy.LSTMBuilder(1, 64, 128, model)
+RNN = dy.VanillaLSTMBuilder(1, 64, 128, model)
 
 # Softmax weights/biases on top of LSTM outputs
 W_sm = model.add_parameters((nwords, 128))
