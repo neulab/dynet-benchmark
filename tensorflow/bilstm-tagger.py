@@ -65,10 +65,12 @@ for sent in train:
         tags.append(p)
         wc[w]+=1
 words.append("_UNK_")
+tags.append("_UNK_")
 
 vw = Vocab.from_corpus([words]) 
 vt = Vocab.from_corpus([tags])
 UNK = vw.w2i["_UNK_"]
+UNK_tag = vt.w2i["_UNK_"]
 
 nwords = vw.size()
 ntags  = vt.size()
@@ -89,6 +91,37 @@ else:
 
 
 
+def tag_sent_precalc(words, vecs):
+    log_probs = [v.npvalue() for v in vecs]
+    tags = []
+    for prb in log_probs:
+        tag = np.argmax(prb)
+        tags.append(vt.i2w[tag])
+    return zip(words, tags)
+
+def getSentAccuracy(sentLengths, log_probs, golds):
+
+  log_probs = tf.unstack(log_probs, axis=0)
+  all_tags = []
+  s = tf.InteractiveSession()
+  good_sent = bad_sent = 0
+  for i, sent_prob in enumerate(log_probs):
+    sent_prob = tf.unstack(sent_prob, axis=0)
+    sent_tags = []
+    for word_probs in sent_prob:
+      tag = tf.argmax(word_probs, axis=0)
+      tag = s.run(tag)
+      sent_tags.append(tag)
+    if sent_tags[:sentLengths[i]] == golds[i][:sentLengths[i]]:
+      good_sent += 1
+    else:
+      bad_sent += 1
+    all_tags.append(sent_tags)
+
+  return good_sent/(good_sent + bad_sent), all_tags
+
+
+
 def main(_):
 
   # Lookup parameters for word/tag embeddings
@@ -99,51 +132,32 @@ def main(_):
 
 
   # input sentence placeholder
+  # (args.minibatch_size, max_length)
   words_in = tf.placeholder(tf.int32, [args.minibatch_size, max_length], name="words_in")
   golds_in = tf.placeholder(tf.int32, [args.minibatch_size, max_length], name="golds_in")
   sentLengths_in = tf.placeholder(tf.int32, [args.minibatch_size], name="sentLengths_in")
-  mask_input = tf.placeholder(tf.float32, [args.minibatch_size, max_length], name="mask_input")
+  masks_in = tf.placeholder(tf.float32, [args.minibatch_size, max_length], name="masks_in")
   
   wembs = []
   gold_tags = []
   for sid in range(args.minibatch_size):
     emb = tf.nn.embedding_lookup(WORDS_LOOKUP, words_in[sid])
-    gold_tags.append(golds_in[sid])
     wembs.append(emb)
+    gold_tags.append(golds_in[sid])
+
   # Word-level LSTM (configurable number of layers, input is unspecified,
   # but will be equal to the embedding dim, output=128)
   cell = tf.nn.rnn_cell.BasicLSTMCell(args.hidden_dim) 
   cell = tf.nn.rnn_cell.MultiRNNCell([cell] * args.num_layers, state_is_tuple=True)
 
-  # print len(gold_tags), gold_tags[0]
   gold_tags_as_list = tf.stack(gold_tags, axis=1)
-  # print gold_tags_as_list.get_shape()
   gold_tags_as_list = tf.unstack(gold_tags_as_list, axis=0)
-  # print len(gold_tags_as_list)
-  
-
-  # W_sm = tf.Variable(tf.random_uniform([args.hidden_dim, nwords]))
-  # b_sm = tf.Variable(tf.random_uniform([nwords]))
-
-  # initial_state_fwd = cell.zero_state(args.minibatch_size, tf.float32)
-  # initial_state_bwd = cell.zero_state(args.minibatch_size, tf.float32)
-  # cell_output_fwd, state = cell((tf.nn.embedding_lookup(WORDS_LOOKUP, x[-1])), initial_state)
-
-  # for time_step in range(max_length):
-  #   output_fw.append(cell_output)
-  #   tf.get_variable_scope().reuse_variables()
-  #   score = tf.matmul(cell_output, W_sm) + b_sm
-  #   emb = tf.nn.embedding_lookup(WORDS_LOOKUP, x[time_step])
-  #   # update the state of the RNN
-  #   cell_output, state = cell(tf.squeeze(emb), state)
-
 
   outputs, states =  tf.nn.bidirectional_dynamic_rnn(cell_fw=cell,
                                                      cell_bw=cell,
                                                      dtype=tf.float32,
                                                      sequence_length=sentLengths_in,
                                                      inputs=tf.stack(wembs, axis=0))
-
 
   # Each (args.minibatch_size, max_length, args.hidden_dim)
   output_fw, output_bw = outputs
@@ -159,21 +173,20 @@ def main(_):
   mlp_prod = tf.reduce_sum(tf.mul(output_concat, mlp_hidden), axis=3)
   mlp_activation = tf.tanh(tf.expand_dims(mlp_prod, axis=3))
   mlp_output = tf.reduce_sum(tf.mul(mlp_out, mlp_activation) , axis=0)
-  print mlp_output.get_shape()
 
-  # # calculate the loss
-  logits_as_list = tf.split(1, max_length, mlp_output)
-  print len(logits_as_list), logits_as_list[0].get_shape()
-
-  # # Mask loss weights using input mask
-  loss_weights = tf.mul(tf.ones(shape=(args.minibatch_size, max_length)), mask_input)
+  logits_as_list = tf.unstack(mlp_output, axis=1)
+  ## Mask loss weights using input mask
+  
+  loss_weights = tf.mul(tf.ones(shape=(args.minibatch_size, max_length)), masks_in)
   loss_weights = tf.unstack(loss_weights,axis=1)
 
+  ## calculate the loss
   #Average log perplexity  
   losses = tf.nn.seq2seq.sequence_loss_by_example(logits_as_list, gold_tags_as_list , loss_weights)
   loss = tf.reduce_mean(losses)
 
   optimizer = tf.train.AdamOptimizer().minimize(loss)
+  # gradient clipping
   # gvs = optimizer.compute_gradients(cost)
   # capped_gvs = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gvs]
   # optimizer.apply_gradients(capped_gvs)
@@ -186,6 +199,7 @@ def main(_):
   train_losses = [] 
   start = time.time()
   i = all_time = all_tagged = this_tagged = this_loss = 0
+  
   for ITER in xrange(args.epochs):
     random.shuffle(train_order)
     for i,s in enumerate(train_order, start=1):
@@ -195,31 +209,47 @@ def main(_):
         all_tagged += this_tagged
         this_loss = this_tagged = 0
 
-      if i % (10000/args.minibatch_size) == 0:
+      if i % (500/args.minibatch_size) == 0:
         all_time += time.time() - start
-        good_sent = bad_sent = good = bad = 0.0
+        sentAccuracy = good = bad = 0.0
         for tid in test_order:
-          t_examples = test[tid:tid+args.minibatch_size]
-          words = [[w for w,t in sent] for sent in t_examples]
-          golds = [[t for w,t in sent] for sent in t_examples]
-          _, tags = sess.run(loss, feed_dict={words_in: words})
-          if tags == golds: good_sent += 1
-          else: bad_sent += 1
-          for go,gu in zip(golds,tags):
-            if go == gu: good += 1
-            else: bad += 1
-        print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), all_time, all_tagged/all_time))
+          t_examples = test[tid : tid+args.minibatch_size]
+          words = [[vw.w2i[w] if wc[w]>5 else UNK for w,t in sent] for sent in t_examples]
+          words = [pad(example, UNK, max_length) for example in words]
+          golds = [[vt.w2i[t] for w,t in sent] for sent in t_examples]
+          golds = [pad(example, UNK_tag, max_length) for example in golds]
+          sentLengths = [len(sent) for sent in examples]    
+          masks = [[1.0] * len(example) + [0.0] * (max_length - len(example)) for example in examples]
+          log_probs = sess.run(mlp_output, feed_dict={words_in:words, golds_in:golds, sentLengths_in:sentLengths, masks_in:masks})
+          
+          sentAccuracy, all_tags  = getSentAccuracy(sentLengths, log_probs, golds)
+          
+          for true_tags, pred_tags in zip(golds, all_tags):
+            for go, gu in zip(true_tags, pred_tags):
+              if go == gu: good += 1
+              else: bad += 1
+        print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), sentAccuracy, all_time, all_tagged/all_time))
         if all_time > 300:
           sys.exit(0)
           start = time.time()
         
       # train on sent
+      
       examples = train[s : s+args.minibatch_size]
-      words = [[vw.w2i[w] if wc[w]>5 else "_UNK_" for w,t in sent] for sent in examples]
+      # max_length = len(max(examples, key=len))
+      
+      words = [[vw.w2i[w] if wc[w]>5 else UNK for w,t in sent] for sent in examples]
+      words = [pad(example, UNK, max_length) for example in words]
+      
       golds = [[vt.w2i[t] for w,t in sent] for sent in examples]
+      golds = [pad(example, UNK_tag, max_length) for example in golds]
+      
       sentLengths = [len(sent) for sent in examples]
+      
       masks = [[1.0] * len(example) + [0.0] * (max_length - len(example)) for example in examples]
+      
       train_loss, _ = sess.run([loss, optimizer], feed_dict={words_in:words, golds_in:golds, sentLengths_in:sentLengths, masks_in:masks})
+      
       this_loss += train_loss
       this_tagged += len(golds)
 
