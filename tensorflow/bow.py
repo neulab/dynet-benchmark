@@ -51,20 +51,20 @@ def main(_):
   
   ##Calculate scores
   embs = [tf.expand_dims(tf.nn.embedding_lookup(W_sm, x), axis=1) for x in tf.unstack(words_in)]
-  embs_concat = tf.concat(1, embs)
-  score = tf.mul(embs_concat, masks_in)
+  embs_concat = tf.concat(1, embs) # embedding matrix
+  score = tf.mul(embs_concat, masks_in) # truncate padded tokens' embeddings
   score = tf.reduce_sum(score, axis=1)
   score_out = tf.add(score, b_sm)
 
-  # Add dims to match sequence_loss_by_examples func definition
+  # Add dims to match cross entropy func definition
   score_to_loss = tf.expand_dims(score_out, axis=0)
-  score_to_loss = tf.expand_dims(score_to_loss, axis=0)
+
+  # loss_weights = tf.unstack(tf.Variable(tf.ones(1)))
+  # loss_weights = tf.unstack(tf.random_uniform([1], -1.0, 1.0))
 
   # Calculate loss 
-  # loss_weights = tf.unstack(tf.Variable(tf.ones(1)))
-  loss_weights = tf.unstack(tf.random_uniform([1], -1.0, 1.0))
-
-  losses = tf.nn.seq2seq.sequence_loss_by_example(tf.unstack(score_to_loss), tf.unstack(tags_in), loss_weights)
+  losses = tf.nn.sparse_softmax_cross_entropy_with_logits(score_to_loss, tags_in)
+  # losses = tf.nn.seq2seq.sequence_loss_by_example(tf.unstack(score_to_loss), tf.unstack(tags_in), loss_weights)
   loss = tf.reduce_mean(losses)
 
   optimizer = tf.train.AdamOptimizer().minimize(loss)
