@@ -71,11 +71,9 @@ else:
 def makevar(arr):
   return Variable(xp.array(arr, dtype=xp.int32))
 
-init_alpha = 0.001
-trainer = O.Adam(init_alpha)
+trainer = O.Adam()
 trainer.use_cleargrads()
 trainer.setup(lm)
-trainer.add_hook(GradientClipping(5))
 
 # Build the language model graph
 def calc_lm_loss(sent):
@@ -101,7 +99,6 @@ start = time.time()
 i = all_time = all_tagged = this_words = this_loss = 0
 for ITER in xrange(10):
   random.shuffle(train)
-  trainer.alpha = init_alpha / (1.0 + ITER)
   for s in train:
     i += 1
     if i % 500 == 0:

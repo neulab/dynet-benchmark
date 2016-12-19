@@ -73,11 +73,9 @@ else:
 def makevar(arr):
   return Variable(xp.array(arr, dtype=xp.int32))
 
-init_alpha = 0.001
-trainer = O.Adam(init_alpha)
+trainer = O.Adam()
 trainer.use_cleargrads()
 trainer.setup(lm)
-trainer.add_hook(GradientClipping(5))
 
 # Build the language model graph
 #
@@ -126,7 +124,6 @@ test_order = [x*MB_SIZE for x in range((len(test)-1)/MB_SIZE + 1)]
 start = time.time()
 for ITER in xrange(10):
   random.shuffle(train_order)
-  trainer.alpha = init_alpha / (1.0 + ITER)
   for sid in train_order:
     i += 1
     if i % (500/MB_SIZE) == 0:
