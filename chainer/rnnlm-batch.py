@@ -6,7 +6,6 @@ import math
 import sys
 
 from chainer import Chain, Variable
-from chainer.optimizer import GradientClipping
 import chainer.functions as F
 import chainer.links as L
 import chainer.optimizers as O
