@@ -128,20 +128,20 @@ def build_tag_graph():
     W_mlp_hidden = uniform((LSTM_HIDDEN_DIM * 2, MLP_HIDDEN_DIM), name='W_mlp_hidden')
     W_mlp = uniform((MLP_HIDDEN_DIM, ntags), name='W_mlp')
 
-    def get_word_embed_from_chars(word_chars):
-        # (max_char_num_per_word, char_embed_dim)
-        # (max_char_num_per_word)
-        word_char_embeds, word_char_masks = char_embeddings(word_chars, mask_zero=True)
-        word_embed = char_lstm(T.unbroadcast(word_char_embeds[None, :, :], 0), mask=T.unbroadcast(word_char_masks[None, :], 0))[0]
+    # def get_word_embed_from_chars(word_chars):
+    #     # (max_char_num_per_word, char_embed_dim)
+    #     # (max_char_num_per_word)
+    #     word_char_embeds, word_char_masks = char_embeddings(word_chars, mask_zero=True)
+    #     word_embed = char_lstm(T.unbroadcast(word_char_embeds[None, :, :], 0), mask=T.unbroadcast(word_char_masks[None, :], 0))[0]
+    #
+    #     return word_embed
 
-        return word_embed
-
-    def word_embed_look_up_step(word_id, word_chars):
-        word_embed = ifelse(T.eq(word_id, UNK),
-                            get_word_embed_from_chars(word_chars),  # if it's a unk
-                            word_embeddings(word_id))
-
-        return word_embed
+    # def word_embed_look_up_step(word_id, word_chars):
+    #     word_embed = ifelse(T.eq(word_id, UNK),
+    #                         get_word_embed_from_chars(word_chars),  # if it's a unk
+    #                         word_embeddings(word_id))
+    #
+    #     return word_embed
 
     word_embed_src = T.eq(x, UNK).astype('float32')[:, None]
 

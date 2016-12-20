@@ -106,11 +106,24 @@ vector<int> prepare_minibatch(int mb_size, vector<vector<int> > & data) {
 
 int main(int argc, char** argv) {
 
-  int MB_SIZE = 10;
-
   // format of files: each line is "word1 word2 ..."
   string train_file = "data/text/train.txt";
   string test_file = "data/text/dev.txt";
+
+  // DyNet Starts
+  dynet::initialize(argc, argv);
+  Model model;
+  AdamTrainer trainer(model, 0.001);
+  trainer.sparse_updates_enabled = false;
+  trainer.clipping_enabled = false;
+
+  if(argc != 4) {
+    cerr << "Usage: " << argv[0] << " MB_SIZE EMBED_SIZE HIDDEN_SIZE" << endl;
+    return 1;
+  }
+  int MB_SIZE = atoi(argv[1]);
+  int EMBED_SIZE = atoi(argv[2]);
+  int HIDDEN_SIZE = atoi(argv[3]);
 
   Dict vw;
   vw.convert("<s>");
@@ -124,14 +137,7 @@ int main(int argc, char** argv) {
 
   int nwords = vw.size();
 
-  // DyNet Starts
-  dynet::initialize(argc, argv);
-  Model model;
-  AdamTrainer trainer(model, 0.001);
-  trainer.sparse_updates_enabled = false;
-  trainer.clipping_enabled = false;
-
-  RNNLanguageModel rnnlm(1, 64, 128, nwords, model);
+  RNNLanguageModel rnnlm(1, EMBED_SIZE, HIDDEN_SIZE, nwords, model);
 
   time_point<system_clock> start = system_clock::now();
   int i = 0, all_words = 0, this_words = 0;
