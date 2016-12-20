@@ -109,11 +109,9 @@ def main(_):
 
   output = tf.reshape(tf.concat(1, outputs), [-1, args.hidden_dim])
 
-
   logits = tf.matmul(tf.squeeze(output), W_sm) + b_sm
   # calculate the loss
   logits_as_list = tf.split(0, max_length, logits)
-  
   # Mask loss weights using input mask
   loss_weights = tf.mul(tf.ones(shape=(args.minibatch_size, max_length)), mask_input)
   loss_weights = tf.unstack(loss_weights,axis=1)
@@ -176,6 +174,9 @@ def main(_):
       train_words += tot_words
 
     # TODO: update_epoch
+    print "epoch %r finished" % ITER
 
 if __name__ == "__main__":
   tf.app.run()
+
+
