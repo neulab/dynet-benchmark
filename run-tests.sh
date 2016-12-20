@@ -18,12 +18,12 @@ CHAINER_GPUID=0
 # Run C++ tests
 # dynet-cpp/bilstm-tagger --dynet-mem $DYNET_MEM
 # dynet-cpp/bilstm-tagger-withchar --dynet-mem $DYNET_MEM
-# dynet-cpp/rnnlm-batch --dynet-mem $DYNET_MEM
+dynet-cpp/rnnlm-batch --dynet-mem $DYNET_MEM 10 128 256
 # dynet-cpp/recnn --dynet-mem $DYNET_MEM
 
 # # Run Chainer tests
 # $PYTHON -u chainer/rnnlm-batch.py $CHAINER_GPUID
 
 # Run Theano tests
-THEANO_FLAGS=device=cpu,floatX=float32 $PYTHON -u theano/rnnlm-batch.py 10
+# THEANO_FLAGS=device=cpu,floatX=float32 $PYTHON -u theano/rnnlm-batch.py 10
 
