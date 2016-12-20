@@ -59,41 +59,62 @@ train=list(read(train_file))
 dev=list(read(dev_file))
 words=[]
 tags=[]
+chars=set()
 wc=Counter()
 for sent in train:
   for w,p in sent:
     words.append(w)
     tags.append(p)
+    chars.update(w)
     wc[w]+=1
 words.append("_UNK_")
+chars.add("<*>")
 
 vw = Vocab.from_corpus([words])
 vt = Vocab.from_corpus([tags])
+vc = Vocab.from_corpus([chars])
 UNK = vw.w2i["_UNK_"]
 
 nwords = vw.size()
 ntags  = vt.size()
-print ("nwords=%r, ntags=%r" % (nwords, ntags))
+nchars  = vc.size()
+print ("nwords=%r, ntags=%r, nchars=%r" % (nwords, ntags, nchars))
 
 # Chainer Starts
 
 class Tagger(Chain):
   def __init__(self):
     super(Tagger, self).__init__(
-        embed=L.EmbedID(nwords, 128),
+        embedW=L.EmbedID(nwords, 128),
+        embedC=L.EmbedID(nwords, 20),
         # MLP on top of biLSTM outputs 100 -> 32 -> ntags
         WH=L.Linear(50*2, 32, nobias=True),
         WO=L.Linear(32, ntags, nobias=True),
         # word-level LSTMs
         fwdRNN=L.LSTM(128, 50),
         bwdRNN=L.LSTM(128, 50),
+        # char-level LSTMs,
+        cFwdRNN=L.LSTM(20, 64),
+        cBwdRNN=L.LSTM(20, 64),
     )
 
   def word_rep(self, w):
-    return self.embed(makevar(vw.w2i[w] if wc[w] > 5 else UNK))
+    if wc[w] > 5:
+      return self.embedW(makevar(vw.w2i[w]))
+    else:
+      pad_char = vc.w2i["<*>"]
+      char_ids = [pad_char] + [vc.w2i[c] for c in w] + [pad_char]
+      char_embs = [self.embedC(makevar(cid)) for cid in char_ids]
+      self.cFwdRNN.reset_state()
+      self.cBwdRNN.reset_state()
+      for e in char_embs:
+        fw_exp = self.cFwdRNN(e)
+      for e in reversed(char_embs):
+        bw_exp = self.cBwdRNN(e)
+      return F.concat([fw_exp, bw_exp])
 
   def build_tagging_graph(self, words):
-    #initialize the RNNs
+    # initialize the RNNs
     self.fwdRNN.reset_state()
     self.bwdRNN.reset_state()
 
@@ -131,7 +152,7 @@ trainer.setup(tagger)
 
 start = time.time()
 i = all_time = all_tagged = this_tagged = this_loss = 0
-for ITER in xrange(50):
+for ITER in xrange(10):
   random.shuffle(train)
   for s in train:
     i += 1
@@ -150,13 +171,13 @@ for ITER in xrange(50):
           good_sent += 1
         else:
           bad_sent += 1
-        for go, gu in zip(golds, tags):
+        for go,gu in zip(golds,tags):
           if go == gu:
             good += 1
           else:
             bad += 1
       print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), all_time, all_tagged/all_time))
-      if all_time > 300:
+      if all_time > 3600:
         sys.exit(0)
       start = time.time()
     # train on sent
