@@ -15,13 +15,10 @@ DYNET_LIB=-ldynet
 CC=g++
 CXX_FLAGS=-std=c++11 -I${EIGEN_PATH} -I${DYNET_PATH} -L${DYNET_PATH}/build/dynet ${DYNET_LIB} -Ofast
 
-all: rnnlm rnnlm-batch recnn bilstm-tagger bilstm-tagger-withchar
+all: rnnlm-batch recnn bilstm-tagger bilstm-tagger-withchar
 
 clean:
-	rm rnnlm rnnlm-batch recnn bilstm-tagger bilstm-tagger-withchar
-
-rnnlm: rnnlm.cc
-	${CC} -o rnnlm rnnlm.cc ${CXX_FLAGS}
+	rm rnnlm-batch recnn bilstm-tagger bilstm-tagger-withchar
 
 rnnlm-batch: rnnlm-batch.cc
 	${CC} -o rnnlm-batch rnnlm-batch.cc ${CXX_FLAGS}

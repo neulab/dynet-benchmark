@@ -20,8 +20,8 @@ args = parser.parse_args()
 print "ARGS:", args
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
-train_file='../data/text/train.txt'
-test_file='../data/text/dev.txt'
+train_file='data/text/train.txt'
+test_file='data/text/dev.txt'
 w2i = defaultdict(count(0).next)
 eos = '<s>'
 
@@ -141,7 +141,7 @@ def main(_):
     random.shuffle(train_order)
     for i,sid in enumerate(train_order, start=1):
       if i % (500/args.minibatch_size) == 0:
-        print "Updates so far:", (i-1)*(args.minibatch_size), "Loss:" , sum(train_losses) / train_words
+        print "Updates so far:", (i-1), "Loss:" , sum(train_losses) / train_words
         all_tagged += train_words
         train_losses = []
         train_words = 0
