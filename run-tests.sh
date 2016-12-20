@@ -1,13 +1,17 @@
 #!/bin/bash
 
+ANACONDA_PATH=$HOME/usr/local/anaconda3/envs/benchmark2/lib/
 CUDA_PATH=/usr/local/cuda-7.5
-DYNET_PATH=$HOME/work/dynet-vanilla
+DYNET_PATH=$HOME/work/dynet
 LD_LIBRARY_PATH=$DYNET_PATH/build/dynet:$CUDA_PATH/lib64
 LIBRARY_PATH=$DYNET_PATH/build/dynet:$CUDA_PATH/lib64
 PYTHONPATH=$DYNET_PATH/build/python
 PYTHON=python2.7
 DYNET_MEM=512
 CHAINER_GPUID=0
+
+# Run RNNLM-Batch
+
 
 # # Run python tests
 # $PYTHON -u dynet-py/bilstm-tagger.py --dynet-mem $DYNET_MEM

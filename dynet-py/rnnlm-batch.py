@@ -1,18 +1,25 @@
+import time
+start = time.time()
+
 from collections import Counter, defaultdict
 from itertools import count
 import random
-import time
 import math
 import sys
 
 import dynet as dy
 import numpy as np
 
+if len(sys.argv) != 4:
+  print("Usage: %s MB_SIZE EMBED_SIZE HIDDEN_SIZE" % sys.argv[0])
+  sys.exit(1)
+MB_SIZE = int(sys.argv[1])
+EMBED_SIZE = int(sys.argv[2])
+HIDDEN_SIZE = int(sys.argv[3])
+
 # format of files: each line is "word1/tag2 word2/tag2 ..."
 train_file="data/text/train.txt"
 test_file="data/text/dev.txt"
-
-MB_SIZE = 10
 
 w2i = defaultdict(count(0).next)
 
@@ -100,6 +107,8 @@ train.sort(key=lambda x: -len(x))
 test.sort(key=lambda x: -len(x))
 train_order = [x*MB_SIZE for x in range((len(train)-1)/MB_SIZE + 1)]
 test_order = [x*MB_SIZE for x in range((len(test)-1)/MB_SIZE + 1)]
+
+print ("startup time: %r" % (time.time() - start))
 # Perform training
 start = time.time()
 for ITER in xrange(10):

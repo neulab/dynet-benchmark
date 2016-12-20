@@ -1,4 +1,4 @@
-#include <regex>
+#include <boost/regex.hpp>
 #include <vector>
 #include <stdexcept>
 #include <fstream>
@@ -8,6 +8,7 @@
 #include <dynet/expr.h>
 #include <dynet/dict.h>
 
+using namespace boost;
 using namespace std;
 using namespace std::chrono;
 using namespace dynet;
@@ -32,7 +33,7 @@ public:
   static vector<string> tokenize_sexpr(const string & s) {
     regex tokker(" +|[()]|[^ ()]+");
     vector<string> toks;
-    for(auto it = std::sregex_iterator(s.begin(), s.end(), tokker); it != std::sregex_iterator(); ++it) {
+    for(auto it = sregex_iterator(s.begin(), s.end(), tokker); it != sregex_iterator(); ++it) {
       string m = it->str();
       if(m != " ")
         toks.push_back(m);

@@ -106,6 +106,8 @@ vector<int> prepare_minibatch(int mb_size, vector<vector<int> > & data) {
 
 int main(int argc, char** argv) {
 
+  time_point<system_clock> start = system_clock::now();
+
   // format of files: each line is "word1 word2 ..."
   string train_file = "data/text/train.txt";
   string test_file = "data/text/dev.txt";
@@ -139,7 +141,13 @@ int main(int argc, char** argv) {
 
   RNNLanguageModel rnnlm(1, EMBED_SIZE, HIDDEN_SIZE, nwords, model);
 
-  time_point<system_clock> start = system_clock::now();
+  {
+    duration<float> fs = (system_clock::now() - start);
+    float startup_time = duration_cast<milliseconds>(fs).count() / float(1000);
+    cout << "startup time: " << startup_time << endl;
+  }
+
+  start = system_clock::now();
   int i = 0, all_words = 0, this_words = 0;
   float this_loss = 0.f, all_time = 0.f;
   for(int iter = 0; iter < 10; iter++) {
