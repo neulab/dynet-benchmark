@@ -1,4 +1,3 @@
-from __future__ import print_function
 import time
 start = time.time()
 
@@ -34,7 +33,8 @@ def read(fname):
   """
   with file(fname) as fh:
     for line in fh:
-      sent = [w2i[x] for x in line.strip().split()]
+      sent = [w2i[eos]]
+      sent += [w2i[x] for x in line.strip().split()]
       sent.append(w2i[eos])
       yield sent
 
@@ -70,50 +70,15 @@ WORDS_LOOKUP = tf.Variable(tf.random_uniform([nwords, 1, args.EMBED_SIZE], -1.0,
 cell = tf.nn.rnn_cell.BasicLSTMCell(args.HIDDEN_SIZE) 
 cell = tf.nn.rnn_cell.MultiRNNCell([cell] * NUM_LAYERS, state_is_tuple=True)
 
-# Softmax weights/biases on top of LSTM outputs
-W_sm = tf.Variable(tf.random_uniform([args.HIDDEN_SIZE, nwords]))
-b_sm = tf.Variable(tf.random_uniform([nwords]))
-
 # input sentence placeholder
 x_input = tf.placeholder(tf.int32, [args.MB_SIZE, max_length], name="x_input")
 mask_input = tf.placeholder(tf.float32, [args.MB_SIZE, max_length], name="mask_input")
+x_lens = tf.placeholder(tf.int32, [args.MB_SIZE], name='x_lens')
 
-# initialize the RNN
-initial_state = cell.zero_state(args.MB_SIZE, tf.float32)
-
-# start the rnn by inputting "<s>"
-# print x.get_shape() => (mb_size, max_length)
-x = tf.unstack(x_input, num=max_length, axis=1)
-
-cell_output, state = cell(tf.squeeze(tf.nn.embedding_lookup(WORDS_LOOKUP, x[-1])), initial_state)
-# feed word vectors into the RNN and produce the LSTM outputs
-outputs = []
-for time_step in range(max_length):
-  outputs.append(cell_output)
-  tf.get_variable_scope().reuse_variables()
-  score = tf.matmul(cell_output, W_sm) + b_sm
-  emb = tf.nn.embedding_lookup(WORDS_LOOKUP, x[time_step])
-  # update the state of the RNN
-  cell_output, state = cell(tf.squeeze(emb), state)
-
-# Compute the unnormalized log distribution for each word for each sent in the batch
-output = tf.reshape(tf.concat(1, outputs), [-1, args.HIDDEN_SIZE])
-
-logits = tf.matmul(tf.squeeze(output), W_sm) + b_sm
-# calculate the loss
-logits_as_list = tf.split(0, max_length, logits)
-
-# Mask loss weights using input mask
-loss_weights = tf.mul(tf.ones(shape=(args.MB_SIZE, max_length)), mask_input)
-loss_weights = tf.unstack(loss_weights,axis=1)
-
-x = tf.stack(x, axis=1)
-
-x_as_list = [tf.split(0, max_length, sent) for sent in tf.unstack(x, axis=0)]
-x_as_list = tf.squeeze(tf.stack(x_as_list, axis=1))
-
-#Average log perplexity  
-losses = tf.nn.seq2seq.sequence_loss_by_example(logits_as_list, tf.unstack(x_as_list, axis=0), loss_weights)
+x_embs = tf.squeeze(tf.nn.embedding_lookup(WORDS_LOOKUP, x_input))
+cell_out = tf.nn.rnn_cell.OutputProjectionWrapper(cell, nwords)
+outputs, _ = tf.nn.dynamic_rnn(cell_out, x_embs, sequence_length=x_lens, dtype=tf.float32)
+losses = tf.nn.sparse_softmax_cross_entropy_with_logits(outputs, x_input)
 loss = tf.reduce_mean(losses)
 
 optimizer = tf.train.AdamOptimizer().minimize(loss)
@@ -158,9 +123,10 @@ for ITER in xrange(10):
 
     # train on sent
     examples = train[sid : sid+args.MB_SIZE]
+    x_lens_in = [len(examples) for example in examples]
     x_in = [pad(example, S, max_length) for example in examples]
     masks = [[1.0] * len(example) + [0.0] * (max_length - len(example)) for example in examples]
-    train_loss, _ = sess.run([loss, optimizer], feed_dict={x_input: x_in, mask_input: masks})
+    train_loss, _ = sess.run([loss, optimizer], feed_dict={x_input: x_in, mask_input: masks, x_lens:x_lens_in})
     tot_words = sum([len(example) for example in examples])
     train_losses.append(train_loss * tot_words)
     train_words += tot_words
