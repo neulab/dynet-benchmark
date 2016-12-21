@@ -58,31 +58,32 @@ struct RNNLanguageModel {
   
     // start the rnn by inputting "<s>"
     size_t tot_sents = min(sent.size()-pos, (size_t)mb_size);
-    vector<unsigned> start_input(tot_sents, 0);
-    Expression s = builder.add_input(lookup(cg, p_c, start_input)); 
+    vector<unsigned> wids(tot_sents, 0);
+    vector<float> masks(tot_sents);
+    Expression s = builder.add_input(lookup(cg, p_c, wids)); 
 
-    // get the wids and masks for each step
-    int tot_words = 0;
-    vector<vector<unsigned> > wids(sent[pos].size(), vector<unsigned>(tot_sents));
-    vector<vector<float> > masks(sent[pos].size(), vector<float>(tot_sents));
-    for(size_t i = 0; i < sent[pos].size(); ++i) {
-      for(size_t j = 0; j < tot_sents; ++j) {
-        wids[i][j] = (sent[pos+j].size()>i ? sent[pos+j][i] : 0);
-        masks[i][j] = (sent[pos+j].size()>i ? 1.f : 0.f);
-      }
-    }
-  
     // feed word vectors into the RNN and predict the next word
     vector<Expression> losses;
+    size_t j;
     for(size_t i = 0; i < sent[pos].size(); ++i) {
+      // Get the words
+      for(j = 0; j < tot_sents && i < sent[pos+j].size(); ++j) {
+        wids[j] = sent[pos+j][i];
+        masks[j] = 1.f;
+      }
+      // And the masks
+      for(; j < tot_sents; ++j) {
+        wids[j] = 0;
+        masks[j] = 0.f;
+      }
       // calculate the softmax and loss
       Expression score = affine_transform({b_exp, W_exp, s});
-      Expression loss = pickneglogsoftmax(score, wids[i]);
-      if(0.f == *masks[i].rbegin())
-        loss = cmult(loss, input(cg, Dim({1}, mb_size), masks[i]));
+      Expression loss = pickneglogsoftmax(score, wids);
+      if(0.f == *masks.rbegin())
+        loss = cmult(loss, input(cg, Dim({1}, mb_size), masks));
       losses.push_back(loss);
       // update the state of the RNN
-      s = builder.add_input(lookup(cg, p_c, wids[i]));
+      s = builder.add_input(lookup(cg, p_c, wids));
     }
     
     return sum_batches(sum(losses));
@@ -106,6 +107,8 @@ vector<int> prepare_minibatch(int mb_size, vector<vector<int> > & data) {
 
 int main(int argc, char** argv) {
 
+  time_point<system_clock> start = system_clock::now();
+
   // format of files: each line is "word1 word2 ..."
   string train_file = "data/text/train.txt";
   string test_file = "data/text/dev.txt";
@@ -117,13 +120,14 @@ int main(int argc, char** argv) {
   trainer.sparse_updates_enabled = false;
   trainer.clipping_enabled = false;
 
-  if(argc != 4) {
+  if(argc != 5) {
     cerr << "Usage: " << argv[0] << " MB_SIZE EMBED_SIZE HIDDEN_SIZE" << endl;
     return 1;
   }
   int MB_SIZE = atoi(argv[1]);
   int EMBED_SIZE = atoi(argv[2]);
   int HIDDEN_SIZE = atoi(argv[3]);
+  int TIMEOUT = atoi(argv[4]);
 
   Dict vw;
   vw.convert("<s>");
@@ -139,7 +143,13 @@ int main(int argc, char** argv) {
 
   RNNLanguageModel rnnlm(1, EMBED_SIZE, HIDDEN_SIZE, nwords, model);
 
-  time_point<system_clock> start = system_clock::now();
+  {
+    duration<float> fs = (system_clock::now() - start);
+    float startup_time = duration_cast<milliseconds>(fs).count() / float(1000);
+    cout << "startup time: " << startup_time << endl;
+  }
+
+  start = system_clock::now();
   int i = 0, all_words = 0, this_words = 0;
   float this_loss = 0.f, all_time = 0.f;
   for(int iter = 0; iter < 10; iter++) {
@@ -163,7 +173,7 @@ int main(int argc, char** argv) {
           test_loss += as_scalar(cg.forward(loss_exp));
         }
         cout << "nll=" << test_loss/test_words << ", ppl=" << exp(test_loss/test_words) << ", words=" << test_words << ", time=" << all_time << ", word_per_sec=" << all_words/all_time << endl;
-        if(all_time > 3600)
+        if(all_time > TIMEOUT)
           exit(0);
         start = system_clock::now();
       }

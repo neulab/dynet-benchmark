@@ -1,4 +1,7 @@
 from __future__ import division
+import time
+start = time.time()
+
 import theano.tensor as T
 import theano
 import numpy as np
@@ -15,11 +18,13 @@ from nn.initializations import uniform
 from collections import Counter, defaultdict
 from itertools import count
 
-
-EMBEDDING_DIM = 64
-LSTM_HIDDEN_DIM = 128
-MB_SIZE = 10
-
+if len(sys.argv) != 5:
+  print("Usage: %s MB_SIZE EMBED_SIZE HIDDEN_SIZE TIMEOUT" % sys.argv[0])
+  sys.exit(1)
+MB_SIZE = int(sys.argv[1])
+EMBED_SIZE = int(sys.argv[2])
+HIDDEN_SIZE = int(sys.argv[3])
+TIMEOUT = int(sys.argv[4]) 
 
 train_file = 'data/text/train.txt'
 test_file = 'data/text/dev.txt'
@@ -63,12 +68,12 @@ def pad(seq):
 def build_graph():
     # print 'build graph..'
     # Lookup parameters for word embeddings
-    embedding_table = Embedding(vocab_size, EMBEDDING_DIM)
+    embedding_table = Embedding(vocab_size, EMBED_SIZE)
 
-    lstm = LSTM(EMBEDDING_DIM, LSTM_HIDDEN_DIM, inner_init="identity", return_sequences=True)
+    lstm = LSTM(EMBED_SIZE, HIDDEN_SIZE, inner_init="identity", return_sequences=True)
 
     # Softmax weights/biases on top of LSTM outputs
-    W_sm = uniform((LSTM_HIDDEN_DIM, vocab_size), scale=.5, name='W_sm')
+    W_sm = uniform((HIDDEN_SIZE, vocab_size), scale=.5, name='W_sm')
     b_sm = uniform(vocab_size, scale=.5, name='b_sm')
 
     # (batch_size, sentence_length)
@@ -106,69 +111,55 @@ def build_graph():
 
     return train_loss_func, test_loss_func
 
+train_loss_func, test_loss_func = build_graph()
 
-def train_model():
-    train_loss_func, test_loss_func = build_graph()
+i = all_time = all_tagged = this_words = this_loss = 0
 
-    i = all_time = all_tagged = this_words = this_loss = 0
+# Sort training sentences in descending order and count minibatches
+train.sort(key=lambda x: -len(x))
+test.sort(key=lambda x: -len(x))
+train_order = [x * MB_SIZE for x in range(int((len(train) - 1) / MB_SIZE + 1))]
+test_order = [x * MB_SIZE for x in range(int((len(test) - 1) / MB_SIZE + 1))]
 
-    # Sort training sentences in descending order and count minibatches
-    train.sort(key=lambda x: -len(x))
-    test.sort(key=lambda x: -len(x))
-    train_order = [x * MB_SIZE for x in range(int((len(train) - 1) / MB_SIZE + 1))]
-    test_order = [x * MB_SIZE for x in range(int((len(test) - 1) / MB_SIZE + 1))]
+# Perform training
+print ("startup time: %r" % (time.time() - start))
+start = time.time()
+for ITER in xrange(10):
+    random.shuffle(train_order)
+    for sid in train_order:
+        i += 1
+        if i % int(500 / MB_SIZE) == 0:
+            print this_loss / this_words
+            all_tagged += this_words
+            this_loss = this_words = 0
+        if i % int(10000 / MB_SIZE) == 0:
+            all_time += time.time() - start
+            dev_loss = dev_words = 0
+            for test_sid in test_order:
+                batch_sents = test[test_sid:test_sid + MB_SIZE]
+                batch_sents_x = pad(batch_sents)
 
-    # Perform training
-    start = time.time()
-    for ITER in xrange(10):
-        random.shuffle(train_order)
-        for sid in train_order:
-            i += 1
-            if i % (500 / MB_SIZE) == 0:
-                print this_loss / this_words
-                all_tagged += this_words
-                this_loss = this_words = 0
-            if i % (10000 / MB_SIZE) == 0:
-                all_time += time.time() - start
-                dev_loss = dev_words = 0
-                for test_sid in test_order:
-                    batch_sents = test[test_sid:test_sid + MB_SIZE]
-                    batch_sents_x = pad(batch_sents)
+                batch_loss = test_loss_func(batch_sents_x)
+                dev_loss += batch_loss
 
-                    batch_loss = test_loss_func(batch_sents_x)
-                    dev_loss += batch_loss
+                mb_words = sum(len(s) for s in batch_sents)
+                dev_words += mb_words
 
-                    mb_words = sum(len(s) for s in batch_sents)
-                    dev_words += mb_words
+            print ("nll=%.4f, ppl=%.4f, words=%r, time=%.4f, word_per_sec=%.4f" % (
+                dev_loss / dev_words, np.exp(dev_loss / dev_words), dev_words, all_time, all_tagged / all_time))
+            if all_time > TIMEOUT:
+                sys.exit(0)
+            start = time.time()
 
-                print ("nll=%.4f, ppl=%.4f, words=%r, time=%.4f, word_per_sec=%.4f" % (
-                    dev_loss / dev_words, np.exp(dev_loss / dev_words), dev_words, all_time, all_tagged / all_time))
-                if all_time > 3600:
-                    sys.exit(0)
-                start = time.time()
+        # train on the minibatch
 
-            # train on the minibatch
+        batch_sents = train[sid:sid + MB_SIZE]
+        batch_sents_x = pad(batch_sents)
 
-            batch_sents = train[sid:sid + MB_SIZE]
-            batch_sents_x = pad(batch_sents)
+        batch_loss = train_loss_func(batch_sents_x)
+        this_loss += batch_loss
+        # print("loss @ %r: %r" % (i, this_loss))
+        mb_words = sum(len(s) for s in batch_sents)
+        this_words += mb_words
 
-            batch_loss = train_loss_func(batch_sents_x)
-            this_loss += batch_loss
-            # print("loss @ %r: %r" % (i, this_loss))
-            mb_words = sum(len(s) for s in batch_sents)
-            this_words += mb_words
-
-        print "epoch %r finished" % ITER
-
-
-if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print 'usage: %s BATCH_SIZE (set to 1 for non-minibatch case)' % sys.argv[0]
-        sys.exit(-1)
-
-    MB_SIZE = int(sys.argv[1])
-    print >>sys.stderr, 'batch size = %d' % MB_SIZE
-
-    train_model()
-
-    # cProfile.run('train_model()', sort=2)
+    print "epoch %r finished" % ITER

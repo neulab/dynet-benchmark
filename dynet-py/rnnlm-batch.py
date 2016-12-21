@@ -1,18 +1,26 @@
+import time
+start = time.time()
+
 from collections import Counter, defaultdict
 from itertools import count
 import random
-import time
 import math
 import sys
 
 import dynet as dy
 import numpy as np
 
+if len(sys.argv) != 5:
+  print("Usage: %s MB_SIZE EMBED_SIZE HIDDEN_SIZE TIMEOUT" % sys.argv[0])
+  sys.exit(1)
+MB_SIZE = int(sys.argv[1])
+EMBED_SIZE = int(sys.argv[2])
+HIDDEN_SIZE = int(sys.argv[3])
+TIMEOUT = int(sys.argv[4]) 
+
 # format of files: each line is "word1/tag2 word2/tag2 ..."
 train_file="data/text/train.txt"
 test_file="data/text/dev.txt"
-
-MB_SIZE = 10
 
 w2i = defaultdict(count(0).next)
 
@@ -100,18 +108,20 @@ train.sort(key=lambda x: -len(x))
 test.sort(key=lambda x: -len(x))
 train_order = [x*MB_SIZE for x in range((len(train)-1)/MB_SIZE + 1)]
 test_order = [x*MB_SIZE for x in range((len(test)-1)/MB_SIZE + 1)]
+
+print ("startup time: %r" % (time.time() - start))
 # Perform training
 start = time.time()
 for ITER in xrange(10):
     random.shuffle(train_order)
     for sid in train_order: 
         i += 1
-        if i % (500/MB_SIZE) == 0:
+        if i % int(500/MB_SIZE) == 0:
             trainer.status()
             print this_loss / this_words
             all_tagged += this_words
             this_loss = this_words = 0
-        if i % (10000/MB_SIZE) == 0:
+        if i % int(10000/MB_SIZE) == 0:
             all_time += time.time() - start
             dev_loss = dev_words = 0
             for sid in test_order:
@@ -119,7 +129,7 @@ for ITER in xrange(10):
                 dev_loss += loss_exp.scalar_value()
                 dev_words += mb_words
             print ("nll=%.4f, ppl=%.4f, words=%r, time=%.4f, word_per_sec=%.4f" % (dev_loss/dev_words, math.exp(dev_loss/dev_words), dev_words, all_time, all_tagged/all_time))
-            if all_time > 3600:
+            if all_time > TIMEOUT:
                 sys.exit(0)
             start = time.time()
         # train on the minibatch

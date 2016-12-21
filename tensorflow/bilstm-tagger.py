@@ -20,8 +20,8 @@ args = parser.parse_args()
 print "ARGS:", args
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
-train_file='../data/tags/train.txt'
-test_file='../data/tags/dev.txt'
+train_file='data/tags/train.txt'
+test_file='data/tags/dev.txt'
 
 class Vocab:
     def __init__(self, w2i=None):

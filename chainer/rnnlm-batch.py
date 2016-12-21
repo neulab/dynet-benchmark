@@ -1,27 +1,30 @@
+import time
+start = time.time()
+
 from collections import Counter, defaultdict
 from itertools import count
 import random
-import time
 import math
 import sys
 
 from chainer import Chain, Variable
-from chainer.optimizer import GradientClipping
 import chainer.functions as F
 import chainer.links as L
 import chainer.optimizers as O
 
-if len(sys.argv) != 2:
-  print("usage: %s (GPU-ID or -1 to use CPU)" % sys.argv[0])
+if len(sys.argv) != 5:
+  print("Usage: %s MB_SIZE EMBED_SIZE HIDDEN_SIZE TIMEOUT" % sys.argv[0])
   sys.exit(1)
+MB_SIZE = int(sys.argv[1])
+EMBED_SIZE = int(sys.argv[2])
+HIDDEN_SIZE = int(sys.argv[3])
+TIMEOUT = int(sys.argv[4]) 
 
-GPUID = int(sys.argv[1])
+GPUID = -1
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
 train_file="data/text/train.txt"
 test_file="data/text/dev.txt"
-
-MB_SIZE = 10
 
 w2i = defaultdict(count(0).next)
 
@@ -47,9 +50,9 @@ assert(nwords == len(w2i))
 class RNNLM(Chain):
   def __init__(self):
     super(RNNLM, self).__init__(
-        embed=L.EmbedID(nwords, 64),
-        rnn=L.LSTM(64, 128),
-        h2y=L.Linear(128, nwords),
+        embed=L.EmbedID(nwords, EMBED_SIZE),
+        rnn=L.LSTM(EMBED_SIZE, HIDDEN_SIZE),
+        h2y=L.Linear(HIDDEN_SIZE, nwords),
     )
 
   def reset(self):
@@ -73,11 +76,9 @@ else:
 def makevar(arr):
   return Variable(xp.array(arr, dtype=xp.int32))
 
-init_alpha = 0.001
-trainer = O.Adam(init_alpha)
+trainer = O.Adam()
 trainer.use_cleargrads()
 trainer.setup(lm)
-trainer.add_hook(GradientClipping(5))
 
 # Build the language model graph
 #
@@ -123,17 +124,17 @@ test.sort(key=lambda x: -len(x))
 train_order = [x*MB_SIZE for x in range((len(train)-1)/MB_SIZE + 1)]
 test_order = [x*MB_SIZE for x in range((len(test)-1)/MB_SIZE + 1)]
 # Perform training
+print ("startup time: %r" % (time.time() - start))
 start = time.time()
 for ITER in xrange(10):
   random.shuffle(train_order)
-  trainer.alpha = init_alpha / (1.0 + ITER)
   for sid in train_order:
     i += 1
-    if i % (500/MB_SIZE) == 0:
+    if i % int(500/MB_SIZE) == 0:
       print(this_loss / this_words)
       all_tagged += this_words
       this_loss = this_words = 0
-    if i % (10000/MB_SIZE) == 0:
+    if i % int(10000/MB_SIZE) == 0:
       all_time += time.time() - start
       dev_loss = dev_words = 0
       for sid in test_order:
@@ -141,7 +142,7 @@ for ITER in xrange(10):
         dev_loss += float(loss_exp.data)
         dev_words += mb_words
       print("nll=%.4f, ppl=%.4f, words=%r, time=%.4f, word_per_sec=%.4f" % (dev_loss/dev_words, math.exp(dev_loss/dev_words), dev_words, all_time, all_tagged/all_time))
-      if all_time > 3600:
+      if all_time > TIMEOUT:
         sys.exit(0)
       start = time.time()
     # train on the minibatch

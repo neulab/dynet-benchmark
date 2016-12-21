@@ -1,11 +1,22 @@
+import time
+start = time.time()
+
 from collections import Counter, defaultdict
 from itertools import count
 import random
-import time
 import sys
 
 import dynet as dy
 import numpy as np
+
+if len(sys.argv) != 6:
+  print("Usage: %s CEMBED_SIZE WEMBED_SIZE HIDDEN_SIZE MLP_SIZE TIMEOUT" % sys.argv[0])
+  sys.exit(1)
+CEMBED_SIZE = int(sys.argv[1])
+WEMBED_SIZE = int(sys.argv[2])
+HIDDEN_SIZE = int(sys.argv[3])
+MLP_SIZE = int(sys.argv[4])
+TIMEOUT = int(sys.argv[5]) 
 
 # format of files: each line is "word1|tag2 word2|tag2 ..."
 train_file="data/tags/train.txt"
@@ -68,21 +79,20 @@ trainer = dy.AdamTrainer(model)
 trainer.set_clip_threshold(-1.0)
 trainer.set_sparse_updates(False)
 
-WORDS_LOOKUP = model.add_lookup_parameters((nwords, 128))
-CHARS_LOOKUP = model.add_lookup_parameters((nchars, 20))
-p_t1  = model.add_lookup_parameters((ntags, 30))
+WORDS_LOOKUP = model.add_lookup_parameters((nwords, WEMBED_SIZE))
+CHARS_LOOKUP = model.add_lookup_parameters((nchars, CEMBED_SIZE))
 
 # MLP on top of biLSTM outputs 100 -> 32 -> ntags
-pH = model.add_parameters((32, 50*2))
-pO = model.add_parameters((ntags, 32))
+pH = model.add_parameters((MLP_SIZE, HIDDEN_SIZE*2))
+pO = model.add_parameters((ntags, MLP_SIZE))
 
 # word-level LSTMs
-fwdRNN = dy.LSTMBuilder(1, 128, 50, model) # layers, in-dim, out-dim, model
-bwdRNN = dy.LSTMBuilder(1, 128, 50, model)
+fwdRNN = dy.LSTMBuilder(1, WEMBED_SIZE, HIDDEN_SIZE, model) # layers, in-dim, out-dim, model
+bwdRNN = dy.LSTMBuilder(1, WEMBED_SIZE, HIDDEN_SIZE, model)
 
 # char-level LSTMs
-cFwdRNN = dy.LSTMBuilder(1, 20, 64, model)
-cBwdRNN = dy.LSTMBuilder(1, 20, 64, model)
+cFwdRNN = dy.LSTMBuilder(1, CEMBED_SIZE, WEMBED_SIZE/2, model)
+cBwdRNN = dy.LSTMBuilder(1, CEMBED_SIZE, WEMBED_SIZE/2, model)
 
 def word_rep(w, cf_init, cb_init):
     if wc[w] > 5:
@@ -149,6 +159,7 @@ def tag_sent_precalc(words, vecs):
 def tag_sent(words):
     return tag_sent_precalc(words, build_tagging_graph(words))
 
+print ("startup time: %r" % (time.time() - start))
 start = time.time()
 i = all_time = all_tagged = this_tagged = this_loss = 0
 for ITER in xrange(10):
@@ -173,7 +184,7 @@ for ITER in xrange(10):
                     if go == gu: good += 1
                     else: bad += 1
             print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), all_time, all_tagged/all_time))
-            if all_time > 3600:
+            if all_time > TIMEOUT:
                 sys.exit(0)
             start = time.time()
         # train on sent

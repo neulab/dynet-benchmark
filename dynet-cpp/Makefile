@@ -2,7 +2,7 @@
 
 CUDA_PATH=/usr/local/cuda-7.5
 EIGEN_PATH=${HOME}/usr/local/eigen
-DYNET_PATH=${HOME}/work/dynet-vanilla
+DYNET_PATH=${HOME}/work/dynet
 
 # *** CPU
 DYNET_LIB=-ldynet
@@ -13,7 +13,7 @@ DYNET_LIB=-ldynet
 # CXX_FLAGS=-std=c++11 -I${EIGEN_PATH} -I${DYNET_PATH} -L${DYNET_PATH}/build/dynet -lc++ ${DYNET_LIB} -Ofast
 # *** Linux
 CC=g++
-CXX_FLAGS=-std=c++11 -I${EIGEN_PATH} -I${DYNET_PATH} -L${DYNET_PATH}/build/dynet ${DYNET_LIB} -Ofast
+CXX_FLAGS=-std=c++11 -I${EIGEN_PATH} -I${DYNET_PATH} -L${DYNET_PATH}/build/dynet -lboost_regex ${DYNET_LIB} -Ofast
 
 all: rnnlm-batch recnn bilstm-tagger bilstm-tagger-withchar
 
