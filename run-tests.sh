@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+# set -e
 
 export ANACONDA_PATH=$HOME/usr/local/anaconda3/envs/benchmark2
 export CUDA_PATH=/usr/local/cuda-7.5
