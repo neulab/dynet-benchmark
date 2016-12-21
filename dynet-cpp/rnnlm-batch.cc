@@ -119,13 +119,14 @@ int main(int argc, char** argv) {
   trainer.sparse_updates_enabled = false;
   trainer.clipping_enabled = false;
 
-  if(argc != 4) {
+  if(argc != 5) {
     cerr << "Usage: " << argv[0] << " MB_SIZE EMBED_SIZE HIDDEN_SIZE" << endl;
     return 1;
   }
   int MB_SIZE = atoi(argv[1]);
   int EMBED_SIZE = atoi(argv[2]);
   int HIDDEN_SIZE = atoi(argv[3]);
+  int TIMEOUT = atoi(argv[4]);
 
   Dict vw;
   vw.convert("<s>");
@@ -171,7 +172,7 @@ int main(int argc, char** argv) {
           test_loss += as_scalar(cg.forward(loss_exp));
         }
         cout << "nll=" << test_loss/test_words << ", ppl=" << exp(test_loss/test_words) << ", words=" << test_words << ", time=" << all_time << ", word_per_sec=" << all_words/all_time << endl;
-        if(all_time > 3600)
+        if(all_time > TIMEOUT)
           exit(0);
         start = system_clock::now();
       }

@@ -10,12 +10,13 @@ import sys
 import numpy as np
 import tensorflow as tf
 
-if len(sys.argv) != 4:
-  print("Usage: %s MB_SIZE EMBED_SIZE HIDDEN_SIZE" % sys.argv[0])
+if len(sys.argv) != 5:
+  print("Usage: %s MB_SIZE EMBED_SIZE HIDDEN_SIZE TIMEOUT" % sys.argv[0])
   sys.exit(1)
 MB_SIZE = int(sys.argv[1])
 EMBED_SIZE = int(sys.argv[2])
 HIDDEN_SIZE = int(sys.argv[3])
+TIMEOUT = int(sys.argv[4]) 
 NUM_LAYERS = 1
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
@@ -149,7 +150,7 @@ for ITER in xrange(10):
         test_words += tot_words
       nll = sum(test_losses) / test_words
       print >>sys.stderr, 'nll=%.4f, ppl=%.4f, time=%.4f, words_per_sec=%.4f' % (nll, math.exp(nll), all_time, all_tagged/all_time)
-      if all_time > 300:
+      if all_time > TIMEOUT:
         sys.exit(0)
       start = time.time()
 

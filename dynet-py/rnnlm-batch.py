@@ -10,12 +10,13 @@ import sys
 import dynet as dy
 import numpy as np
 
-if len(sys.argv) != 4:
-  print("Usage: %s MB_SIZE EMBED_SIZE HIDDEN_SIZE" % sys.argv[0])
+if len(sys.argv) != 5:
+  print("Usage: %s MB_SIZE EMBED_SIZE HIDDEN_SIZE TIMEOUT" % sys.argv[0])
   sys.exit(1)
 MB_SIZE = int(sys.argv[1])
 EMBED_SIZE = int(sys.argv[2])
 HIDDEN_SIZE = int(sys.argv[3])
+TIMEOUT = int(sys.argv[4]) 
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
 train_file="data/text/train.txt"
@@ -128,7 +129,7 @@ for ITER in xrange(10):
                 dev_loss += loss_exp.scalar_value()
                 dev_words += mb_words
             print ("nll=%.4f, ppl=%.4f, words=%r, time=%.4f, word_per_sec=%.4f" % (dev_loss/dev_words, math.exp(dev_loss/dev_words), dev_words, all_time, all_tagged/all_time))
-            if all_time > 3600:
+            if all_time > TIMEOUT:
                 sys.exit(0)
             start = time.time()
         # train on the minibatch
