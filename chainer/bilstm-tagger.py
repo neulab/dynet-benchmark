@@ -1,3 +1,4 @@
+from __future__ import print_function
 import time
 start = time.time()
 
@@ -17,6 +18,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('WEMBED_SIZE', type=int, help='embedding size')
 parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
 parser.add_argument('MLP_SIZE', type=int, help='embedding size')
+parser.add_argument('SPARSE', type=int, help='sparse update 0/1')
 parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
 args = parser.parse_args()
 
@@ -144,7 +146,7 @@ for ITER in xrange(50):
   for s in train:
     i += 1
     if i % 500 == 0:   # print status
-      print this_loss / this_tagged
+      print (this_loss / this_tagged)
       all_tagged += this_tagged
       this_loss = this_tagged = 0
     if i % 10000 == 0: # eval on dev
@@ -178,5 +180,5 @@ for ITER in xrange(50):
     loss_exp.backward()
     trainer.update()
 
-  print "epoch %r finished" % ITER
+  print ("epoch %r finished" % ITER)
   trainer.update_epoch(1.0)

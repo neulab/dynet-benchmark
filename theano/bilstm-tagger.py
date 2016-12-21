@@ -87,7 +87,7 @@ assert vw.w2i['_MASK_'] == 0
 nwords = vw.size()
 ntags  = vt.size()
 
-print "nwords=%r, ntags=%r" % (nwords, ntags)
+print ("nwords=%r, ntags=%r" % (nwords, ntags))
 
 
 def word2id(w):
@@ -112,7 +112,7 @@ def pad(seq):
 
 
 def build_tag_graph():
-  print >> sys.stderr, 'build graph..'
+  print ('build graph..', file=sys.stderr)
 
   # (batch_size, sentence_length)
   x = T.imatrix(name='sentence')
@@ -188,20 +188,20 @@ def tag_sent(batch_sents, decode_func):
 
 train_func, decode_func = build_tag_graph()
 
-batch_num = int(np.ceil(len(train) / float(MB_BATCH)))
-batches = [(i * MB_BATCH, min(len(train), (i + 1) * MB_BATCH)) for i in range(0, batch_num)]
+batch_num = int(np.ceil(len(train) / float(MB_SIZE)))
+batches = [(i * MB_SIZE, min(len(train), (i + 1) * MB_SIZE)) for i in range(0, batch_num)]
 
 print ("startup time: %r" % (time.time() - start))
 start = time.time()
 i = all_time = all_tagged = this_tagged = this_loss = 0
 
-for ITER in xrange(50):
+for ITER in range(50):
   random.shuffle(train)
   for batch_id, (batch_start, batch_end) in enumerate(batches):
-    i += MB_BATCH
+    i += MB_SIZE
 
     if i % 500 == 0:  # print status
-      print this_loss / this_tagged
+      print (this_loss / this_tagged)
       all_tagged += this_tagged
       this_loss = this_tagged = 0
 
@@ -246,4 +246,4 @@ for ITER in xrange(50):
     this_loss += batch_loss
     this_tagged += len(list(chain(*batch_data)))
 
-  print "epoch %r finished" % ITER
+  print ("epoch %r finished" % ITER)
