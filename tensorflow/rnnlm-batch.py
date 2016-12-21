@@ -84,7 +84,7 @@ loss = tf.reduce_mean(losses)
 optimizer = tf.train.AdamOptimizer().minimize(loss)
 
 print >>sys.stderr, 'Graph created.' 
-sess = tf.InteractiveSession()
+sess = tf.InteractiveSession(config=tf.ConfigProto(intra_op_parallelism_threads=1))
 tf.global_variables_initializer().run()
 print >>sys.stderr, 'Session initialized.' 
 
