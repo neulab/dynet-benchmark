@@ -98,7 +98,7 @@ struct length_greater_then {
 };
 
 vector<int> prepare_minibatch(int mb_size, vector<vector<int> > & data) {
-  sort(data.begin(), data.end(), length_greater_then());
+  stable_sort(data.begin(), data.end(), length_greater_then());
   vector<int> ids;
   for(size_t i = 0; i < data.size(); i += mb_size)
     ids.push_back(i);
