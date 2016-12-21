@@ -5,17 +5,18 @@ from collections import Counter, defaultdict
 import random
 import math
 import sys
+import argparse
 
 import dynet as dy
 import numpy as np
 
-if len(sys.argv) != 5 and not (len(sys.argv) == 7 and sys.argv[1] == "--dynet_mem"):
-  print("Usage: %s MB_SIZE EMBED_SIZE HIDDEN_SIZE TIMEOUT" % sys.argv[0])
-  sys.exit(1)
-MB_SIZE = int(sys.argv[-4])
-EMBED_SIZE = int(sys.argv[-3])
-HIDDEN_SIZE = int(sys.argv[-2])
-TIMEOUT = int(sys.argv[-1])
+parser = argparse.ArgumentParser()
+parser.add_argument("--dynet_mem", default=512, type=int)
+parser.add_argument('MB_SIZE', type=int, help='minibatch size')
+parser.add_argument('EMBED_SIZE', type=int, help='embedding size')
+parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
+parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
+args = parser.parse_args()
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
 train_file="data/text/train.txt"
@@ -51,10 +52,10 @@ trainer.set_sparse_updates(False)
 WORDS_LOOKUP = model.add_lookup_parameters((nwords, 64))
 
 # Word-level LSTM (layers=1, input=64, output=128, model)
-RNN = dy.VanillaLSTMBuilder(1, EMBED_SIZE, HIDDEN_SIZE, model)
+RNN = dy.VanillaLSTMBuilder(1, args.EMBED_SIZE, args.HIDDEN_SIZE, model)
 
 # Softmax weights/biases on top of LSTM outputs
-W_sm = model.add_parameters((nwords, HIDDEN_SIZE))
+W_sm = model.add_parameters((nwords, args.HIDDEN_SIZE))
 b_sm = model.add_parameters(nwords)
 
 # Build the language model graph
@@ -92,7 +93,7 @@ def calc_lm_loss(sents):
         # mask the loss if at least one sentence is shorter
         if mask[-1] != 1:
             mask_expr = dy.inputVector(mask)
-            mask_expr = dy.reshape(mask_expr, (1,), MB_SIZE)
+            mask_expr = dy.reshape(mask_expr, (1,), args.MB_SIZE)
             loss = loss * mask_expr
         losses.append(loss)
         # update the state of the RNN        
@@ -105,8 +106,8 @@ i = all_time = all_tagged = this_words = this_loss = 0
 # Sort training sentences in descending order and count minibatches
 train.sort(key=lambda x: -len(x))
 test.sort(key=lambda x: -len(x))
-train_order = [x*MB_SIZE for x in range(int((len(train)-1)/MB_SIZE + 1))]
-test_order = [x*MB_SIZE for x in range(int((len(test)-1)/MB_SIZE + 1))]
+train_order = [x*args.MB_SIZE for x in range(int((len(train)-1)/args.MB_SIZE + 1))]
+test_order = [x*args.MB_SIZE for x in range(int((len(test)-1)/args.MB_SIZE + 1))]
 
 print ("startup time: %r" % (time.time() - start))
 # Perform training
@@ -115,24 +116,24 @@ for ITER in range(10):
     random.shuffle(train_order)
     for sid in train_order: 
         i += 1
-        if i % int(500/MB_SIZE) == 0:
+        if i % int(500/args.MB_SIZE) == 0:
             trainer.status()
             print (this_loss / this_words)
             all_tagged += this_words
             this_loss = this_words = 0
-        if i % int(10000/MB_SIZE) == 0:
+        if i % int(10000/args.MB_SIZE) == 0:
             all_time += time.time() - start
             dev_loss = dev_words = 0
             for sid in test_order:
-                loss_exp, mb_words = calc_lm_loss(test[sid:sid+MB_SIZE])
+                loss_exp, mb_words = calc_lm_loss(test[sid:sid+args.MB_SIZE])
                 dev_loss += loss_exp.scalar_value()
                 dev_words += mb_words
             print ("nll=%.4f, ppl=%.4f, words=%r, time=%.4f, word_per_sec=%.4f" % (dev_loss/dev_words, math.exp(dev_loss/dev_words), dev_words, all_time, all_tagged/all_time))
-            if all_time > TIMEOUT:
+            if all_time > args.TIMEOUT:
                 sys.exit(0)
             start = time.time()
         # train on the minibatch
-        loss_exp, mb_words = calc_lm_loss(train[sid:sid+MB_SIZE])
+        loss_exp, mb_words = calc_lm_loss(train[sid:sid+args.MB_SIZE])
         this_loss += loss_exp.scalar_value()
         # print("loss @ %r: %r" % (i, this_loss))
         this_words += mb_words

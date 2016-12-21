@@ -8,6 +8,7 @@ import numpy as np
 import sys, time
 import random
 import cProfile
+import argparse
 from itertools import chain
 
 from nn.layers.recurrent import LSTM
@@ -18,13 +19,12 @@ from nn.initializations import uniform
 from collections import Counter, defaultdict
 from itertools import count
 
-if len(sys.argv) != 5:
-  print("Usage: %s MB_SIZE EMBED_SIZE HIDDEN_SIZE TIMEOUT" % sys.argv[0])
-  sys.exit(1)
-MB_SIZE = int(sys.argv[1])
-EMBED_SIZE = int(sys.argv[2])
-HIDDEN_SIZE = int(sys.argv[3])
-TIMEOUT = int(sys.argv[4]) 
+parser = argparse.ArgumentParser()
+parser.add_argument('MB_SIZE', type=int, help='minibatch size')
+parser.add_argument('EMBED_SIZE', type=int, help='embedding size')
+parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
+parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
+args = parser.parse_args()
 
 train_file = 'data/text/train.txt'
 test_file = 'data/text/dev.txt'
@@ -68,12 +68,12 @@ def pad(seq):
 def build_graph():
     # print 'build graph..'
     # Lookup parameters for word embeddings
-    embedding_table = Embedding(vocab_size, EMBED_SIZE)
+    embedding_table = Embedding(vocab_size, args.EMBED_SIZE)
 
-    lstm = LSTM(EMBED_SIZE, HIDDEN_SIZE, inner_init="identity", return_sequences=True)
+    lstm = LSTM(args.EMBED_SIZE, args.HIDDEN_SIZE, inner_init="identity", return_sequences=True)
 
     # Softmax weights/biases on top of LSTM outputs
-    W_sm = uniform((HIDDEN_SIZE, vocab_size), scale=.5, name='W_sm')
+    W_sm = uniform((args.HIDDEN_SIZE, vocab_size), scale=.5, name='W_sm')
     b_sm = uniform(vocab_size, scale=.5, name='b_sm')
 
     # (batch_size, sentence_length)
@@ -118,8 +118,8 @@ i = all_time = all_tagged = this_words = this_loss = 0
 # Sort training sentences in descending order and count minibatches
 train.sort(key=lambda x: -len(x))
 test.sort(key=lambda x: -len(x))
-train_order = [x * MB_SIZE for x in range(int((len(train) - 1) / MB_SIZE + 1))]
-test_order = [x * MB_SIZE for x in range(int((len(test) - 1) / MB_SIZE + 1))]
+train_order = [x * args.MB_SIZE for x in range(int((len(train) - 1) / args.MB_SIZE + 1))]
+test_order = [x * args.MB_SIZE for x in range(int((len(test) - 1) / args.MB_SIZE + 1))]
 
 # Perform training
 print ("startup time: %r" % (time.time() - start))
@@ -128,15 +128,15 @@ for ITER in xrange(10):
     random.shuffle(train_order)
     for sid in train_order:
         i += 1
-        if i % int(500 / MB_SIZE) == 0:
+        if i % int(500 / args.MB_SIZE) == 0:
             print this_loss / this_words
             all_tagged += this_words
             this_loss = this_words = 0
-        if i % int(10000 / MB_SIZE) == 0:
+        if i % int(10000 / args.MB_SIZE) == 0:
             all_time += time.time() - start
             dev_loss = dev_words = 0
             for test_sid in test_order:
-                batch_sents = test[test_sid:test_sid + MB_SIZE]
+                batch_sents = test[test_sid:test_sid + args.MB_SIZE]
                 batch_sents_x = pad(batch_sents)
 
                 batch_loss = test_loss_func(batch_sents_x)
@@ -147,13 +147,13 @@ for ITER in xrange(10):
 
             print ("nll=%.4f, ppl=%.4f, words=%r, time=%.4f, word_per_sec=%.4f" % (
                 dev_loss / dev_words, np.exp(dev_loss / dev_words), dev_words, all_time, all_tagged / all_time))
-            if all_time > TIMEOUT:
+            if all_time > args.TIMEOUT:
                 sys.exit(0)
             start = time.time()
 
         # train on the minibatch
 
-        batch_sents = train[sid:sid + MB_SIZE]
+        batch_sents = train[sid:sid + args.MB_SIZE]
         batch_sents_x = pad(batch_sents)
 
         batch_loss = train_loss_func(batch_sents_x)
