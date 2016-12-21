@@ -1,7 +1,10 @@
+from __future__ import print_function
+import time
+start = time.time()
+
 from collections import Counter, defaultdict
 from itertools import count
 import random
-import time
 import math
 import sys
 import numpy as np
@@ -197,6 +200,7 @@ def main(_):
   print >>sys.stderr, 'Session initialized.' 
 
   train_losses = [] 
+  print ("startup time: %r" % (time.time() - start))
   start = time.time()
   i = all_time = all_tagged = this_tagged = this_loss = 0
   

@@ -43,26 +43,25 @@ vector<pair<vector<string>, vector<string> > > read(const string & fname) {
 class BiLSTMTagger {
 public:
 
-  BiLSTMTagger(Model & model, Dict & wv, Dict & tv, unordered_map<string,int> & wc) 
+  BiLSTMTagger(unsigned layers, unsigned wembed_dim, unsigned hidden_dim, unsigned mlp_dim, Model & model, Dict & wv, Dict & tv, unordered_map<string,int> & wc) 
                         : wv(wv), tv(tv), wc(wc) {
     unsigned nwords = wv.size();
     unsigned ntags  = tv.size();
-    word_lookup = model.add_lookup_parameters(nwords, {128});
-    p_t1  = model.add_parameters({ntags, 30});
+    word_lookup = model.add_lookup_parameters(nwords, {wembed_dim});
     
     // MLP on top of biLSTM outputs 100 -> 32 -> ntags
-    pH = model.add_parameters({32, 50*2});
-    pO = model.add_parameters({ntags, 32});
+    pH = model.add_parameters({mlp_dim, hidden_dim*2});
+    pO = model.add_parameters({ntags, mlp_dim});
     
     // word-level LSTMs
-    fwdRNN = VanillaLSTMBuilder(1, 128, 50, model); // layers, in-dim, out-dim, model
-    bwdRNN = VanillaLSTMBuilder(1, 128, 50, model);
+    fwdRNN = VanillaLSTMBuilder(layers, wembed_dim, hidden_dim, model); // layers, in-dim, out-dim, model
+    bwdRNN = VanillaLSTMBuilder(layers, wembed_dim, hidden_dim, model);
   }
 
   Dict &wv, &tv;
   unordered_map<string,int> & wc;
   LookupParameter word_lookup;
-  Parameter p_t1, pH, pO;
+  Parameter pH, pO;
   VanillaLSTMBuilder fwdRNN, bwdRNN;
 
   // Do word representation 
@@ -119,6 +118,9 @@ public:
 };
 
 int main(int argc, char**argv) {
+
+  time_point<system_clock> start = system_clock::now();
+
   vector<pair<vector<string>, vector<string> > > train = read("data/tags/train.txt");
   vector<pair<vector<string>, vector<string> > > dev = read("data/tags/dev.txt");
   Dict word_voc, tag_voc;
@@ -138,13 +140,29 @@ int main(int argc, char**argv) {
   dynet::initialize(argc, argv);
   Model model;
   AdamTrainer trainer(model, 0.001);
-  trainer.sparse_updates_enabled = false;
+  trainer.clipping_enabled = false;
+
+  if(argc != 6) {
+    cerr << "Usage: " << argv[0] << " WEMBED_SIZE HIDDEN_SIZE MLP_SIZE SPARSE TIMEOUT" << endl;
+    return 1;
+  }
+  int WEMBED_SIZE = atoi(argv[1]);
+  int HIDDEN_SIZE = atoi(argv[2]);
+  int MLP_SIZE = atoi(argv[3]);  
+  trainer.sparse_updates_enabled = atoi(argv[4]);
+  int TIMEOUT = atoi(argv[5]);
 
   // Initilaize the tagger
-  BiLSTMTagger tagger(model, word_voc, tag_voc, word_cnt);
+  BiLSTMTagger tagger(1, WEMBED_SIZE, HIDDEN_SIZE, MLP_SIZE, model, word_voc, tag_voc, word_cnt);
+  
+  {
+    duration<float> fs = (system_clock::now() - start);
+    float startup_time = duration_cast<milliseconds>(fs).count() / float(1000);
+    cout << "startup time: " << startup_time << endl;
+  }
 
   // Do training
-  time_point<system_clock> start = system_clock::now();
+  start = system_clock::now();
   int i = 0, all_tagged = 0, this_words = 0;
   float this_loss = 0.f, all_time = 0.f;
   for(int iter = 0; iter < 10; iter++) {

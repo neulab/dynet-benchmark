@@ -1,6 +1,9 @@
+from __future__ import print_function
+import time
+start = time.time()
+
 from collections import defaultdict
 from operator import itemgetter
-import time
 import random
 import tensorflow as tf
 import numpy as np
@@ -74,6 +77,7 @@ def main(_):
   tf.global_variables_initializer().run()
   print >>sys.stderr, 'Session initialized.'
 
+  print ("startup time: %r" % (time.time() - start))
   for ITER in range(EPOCHS):
     
     # Perform training

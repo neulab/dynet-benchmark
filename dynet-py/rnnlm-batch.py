@@ -1,3 +1,4 @@
+from __future__ import print_function
 import time
 start = time.time()
 
@@ -118,7 +119,7 @@ for ITER in range(10):
         i += 1
         if i % int(500/args.MB_SIZE) == 0:
             trainer.status()
-            print (this_loss / this_words)
+            print (this_loss / this_words, sys.stderr)
             all_tagged += this_words
             this_loss = this_words = 0
         if i % int(10000/args.MB_SIZE) == 0:

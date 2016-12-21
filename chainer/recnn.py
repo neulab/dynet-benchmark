@@ -1,6 +1,9 @@
+from __future__ import print_function
+import time
+start = time.time()
+
 import re
 import codecs
-import time
 from collections import Counter
 import random
 import sys
@@ -170,9 +173,10 @@ trainer = O.Adam()
 trainer.use_cleargrads()
 trainer.setup(tlm)
 
+print ("startup time: %r" % (time.time() - start))
 sents = 0
 all_time = 0
-for ITER in xrange(50):
+for ITER in range(50):
   random.shuffle(train)
   closs = 0.0
   cwords = 0

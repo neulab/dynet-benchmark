@@ -1,5 +1,8 @@
-from collections import defaultdict
+from __future__ import print_function
 import time
+start = time.time()
+
+from collections import defaultdict
 import random
 import dynet as dy
 import numpy as np
@@ -39,6 +42,7 @@ def calc_scores(words):
   b_sm_exp = dy.parameter(b_sm)
   return score + b_sm_exp
 
+print ("startup time: %r" % (time.time() - start))
 for ITER in range(100):
   # Perform training
   # random.shuffle(train)

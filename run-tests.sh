@@ -25,18 +25,18 @@ runcmd() {
   fi
 }
 
-# Run RNNLM-Batch
-mkdir -p log/rnnlm-batch
-for trial in 1 2 3; do
-  for embsize in 64 128; do
-    hidsize=$(($embsize*2))
-    for mbsize in 16 8 4 2 1; do
-      for f in dynet-cpp dynet-py theano tensorflow chainer; do
-        runcmd $f rnnlm-batch "$mbsize $embsize $hidsize $TIMEOUT" log/rnnlm-batch/dynet-cpp-ms$mbsize-es$embsize-hs$hidsize-t$trial.log
-      done
-    done
-  done
-done
+# # Run RNNLM-Batch
+# mkdir -p log/rnnlm-batch
+# for trial in 1 2 3; do
+#   for embsize in 64 128; do
+#     hidsize=$(($embsize*2))
+#     for mbsize in 16 8 4 2 1; do
+#       for f in dynet-cpp dynet-py theano tensorflow chainer; do
+#         runcmd $f rnnlm-batch "$mbsize $embsize $hidsize $TIMEOUT" log/rnnlm-batch/$f-ms$mbsize-es$embsize-hs$hidsize-t$trial.log
+#       done
+#     done
+#   done
+# done
 
 # Run bilstm-tagger
 mkdir -p log/bilstm-tagger
@@ -44,8 +44,12 @@ for trial in 1 2 3; do
   wembsize=128
   hidsize=50
   mlpsize=32
-  for f in dynet-cpp dynet-py theano tensorflow chainer; do
-    runcmd $f bilstm-tagger "$wembsize $hidsize $mlpsize $TIMEOUT" log/bilstm-tagger/$f-ws$wembsize-hs$hidsize-mlps$mlpsize-t$trial.log
+  for f in dynet-py dynet-cpp; do
+  # for f in dynet-cpp dynet-py theano tensorflow chainer; do
+    runcmd $f bilstm-tagger "$wembsize $hidsize $mlpsize 0 $TIMEOUT" log/bilstm-tagger/$f-ws$wembsize-hs$hidsize-mlps$mlpsize-su0-t$trial.log
+    if [[ $f == dynet* ]]; then
+      runcmd $f bilstm-tagger "$wembsize $hidsize $mlpsize 1 $TIMEOUT" log/bilstm-tagger/$f-ws$wembsize-hs$hidsize-mlps$mlpsize-su1-t$trial.log
+    fi
   done
 done
 

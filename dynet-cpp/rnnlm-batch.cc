@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
   trainer.clipping_enabled = false;
 
   if(argc != 5) {
-    cerr << "Usage: " << argv[0] << " MB_SIZE EMBED_SIZE HIDDEN_SIZE" << endl;
+    cerr << "Usage: " << argv[0] << " MB_SIZE EMBED_SIZE HIDDEN_SIZE TIMEOUT" << endl;
     return 1;
   }
   int MB_SIZE = atoi(argv[1]);
