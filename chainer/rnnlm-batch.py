@@ -153,6 +153,6 @@ for ITER in xrange(10):
     lm.cleargrads()
     loss_exp.backward()
     trainer.update()
-  print "epoch %r finished" % ITER
+  print ("epoch %r finished" % ITER)
 
 
