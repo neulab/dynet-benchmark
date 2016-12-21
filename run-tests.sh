@@ -14,7 +14,9 @@ TIMEOUT=600
 runcmd() {
   if [[ ! -e $4 ]]; then
     if [[ $1 == "dynet-cpp" ]]; then
-      mycmd=$1/$2
+      mycmd="$1/$2 --dynet_mem 1024"
+    elif [[ $1 == "dynet-py" ]]; then
+      mycmd="$PYTHON $1/$2.py --dynet_mem 1024"
     else
       mycmd="$PYTHON $1/$2.py"
     fi

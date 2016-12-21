@@ -14,7 +14,7 @@ class Vocab:
     def __init__(self, w2i=None):
         if w2i is None: w2i = defaultdict(lambda: len(w2i))
         self.w2i = dict(w2i)
-        self.i2w = {i:w for w,i in w2i.iteritems()}
+        self.i2w = {i:w for w,i in w2i.items()}
     @classmethod
     def from_corpus(cls, corpus):
         w2i = defaultdict(lambda: len(w2i))

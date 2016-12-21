@@ -66,8 +66,8 @@ def get_vocabs(trees):
     for tree in trees:
         label_vocab.update([n.label for n in tree.nonterms()])
         word_vocab.update([l.label for l in tree.leaves()])
-    labels = [x for x,c in label_vocab.iteritems() if c > 0]
-    words  = ["_UNK_"] + [x for x,c in word_vocab.iteritems() if c > 0]
+    labels = [x for x,c in label_vocab.items() if c > 0]
+    words  = ["_UNK_"] + [x for x,c in word_vocab.items() if c > 0]
     l2i = {l:i for i,l in enumerate(labels)}
     w2i = {w:i for i,w in enumerate(words)}
     return l2i, w2i, labels, words
