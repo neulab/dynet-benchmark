@@ -61,7 +61,7 @@ def pad(seq, element, length):
   return r 
 
 # Lookup parameters for word embeddings
-WORDS_LOOKUP = tf.Variable(tf.random_uniform([nwords, 1, EMBED_DIM], -1.0, 1.0))
+WORDS_LOOKUP = tf.Variable(tf.random_uniform([nwords, 1, EMBED_SIZE], -1.0, 1.0))
 
 # Word-level LSTM (configurable number of layers, input is unspecified,
 # but will be equal to the embedding dim, output=128)
