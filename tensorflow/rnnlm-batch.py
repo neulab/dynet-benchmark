@@ -128,13 +128,13 @@ i = all_time = all_tagged = train_words = 0
 for ITER in xrange(10):
   random.shuffle(train_order)
   for i,sid in enumerate(train_order, start=1):
-    if i % (500/MB_SIZE) == 0:
+    if i % int(500/MB_SIZE) == 0:
       print "Updates so far:", (i-1), "Loss:" , sum(train_losses) / train_words
       all_tagged += train_words
       train_losses = []
       train_words = 0
 
-    if i % (10000/MB_SIZE) == 0:
+    if i % int(10000/MB_SIZE) == 0:
       test_losses = []
       test_words = 0
       all_time += time.time() - start

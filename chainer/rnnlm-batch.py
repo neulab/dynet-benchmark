@@ -130,11 +130,11 @@ for ITER in xrange(10):
   random.shuffle(train_order)
   for sid in train_order:
     i += 1
-    if i % (500/MB_SIZE) == 0:
+    if i % int(500/MB_SIZE) == 0:
       print(this_loss / this_words)
       all_tagged += this_words
       this_loss = this_words = 0
-    if i % (10000/MB_SIZE) == 0:
+    if i % int(10000/MB_SIZE) == 0:
       all_time += time.time() - start
       dev_loss = dev_words = 0
       for sid in test_order:
