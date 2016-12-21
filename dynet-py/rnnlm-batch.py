@@ -9,13 +9,13 @@ import sys
 import dynet as dy
 import numpy as np
 
-if len(sys.argv) != 5:
+if len(sys.argv) != 5 and not (len(sys.argv) == 7 and sys.argv[1] == "--dynet_mem"):
   print("Usage: %s MB_SIZE EMBED_SIZE HIDDEN_SIZE TIMEOUT" % sys.argv[0])
   sys.exit(1)
-MB_SIZE = int(sys.argv[1])
-EMBED_SIZE = int(sys.argv[2])
-HIDDEN_SIZE = int(sys.argv[3])
-TIMEOUT = int(sys.argv[4]) 
+MB_SIZE = int(sys.argv[-4])
+EMBED_SIZE = int(sys.argv[-3])
+HIDDEN_SIZE = int(sys.argv[-2])
+TIMEOUT = int(sys.argv[-1])
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
 train_file="data/text/train.txt"
@@ -51,10 +51,10 @@ trainer.set_sparse_updates(False)
 WORDS_LOOKUP = model.add_lookup_parameters((nwords, 64))
 
 # Word-level LSTM (layers=1, input=64, output=128, model)
-RNN = dy.VanillaLSTMBuilder(1, 64, 128, model)
+RNN = dy.VanillaLSTMBuilder(1, EMBED_SIZE, HIDDEN_SIZE, model)
 
 # Softmax weights/biases on top of LSTM outputs
-W_sm = model.add_parameters((nwords, 128))
+W_sm = model.add_parameters((nwords, HIDDEN_SIZE))
 b_sm = model.add_parameters(nwords)
 
 # Build the language model graph
@@ -87,7 +87,7 @@ def calc_lm_loss(sents):
     losses = []
     for wid, mask in zip(wids, masks):
         # calculate the softmax and loss
-        score = W_exp * s.output() + b_exp
+        score = dy.affine_transform([b_exp, W_exp, s.output()])
         loss = dy.pickneglogsoftmax_batch(score, wid)
         # mask the loss if at least one sentence is shorter
         if mask[-1] != 1:
