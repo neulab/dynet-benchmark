@@ -2,14 +2,18 @@
 #include <stdexcept>
 #include <fstream>
 #include <chrono>
-#include <boost/regex.hpp>
+#ifdef BOOST_REGEX
+  #include <boost/regex.hpp>
+  using namespace boost;
+#else
+  #include <regex>
+#endif
 
 #include <dynet/training.h>
 #include <dynet/expr.h>
 #include <dynet/dict.h>
 #include <dynet/lstm.h>
 
-using namespace boost;
 using namespace std;
 using namespace std::chrono;
 using namespace dynet;

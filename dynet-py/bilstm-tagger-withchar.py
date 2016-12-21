@@ -162,13 +162,13 @@ def tag_sent(words):
 print ("startup time: %r" % (time.time() - start))
 start = time.time()
 i = all_time = all_tagged = this_tagged = this_loss = 0
-for ITER in xrange(10):
+for ITER in range(10):
     random.shuffle(train)
     for s in train:
         i += 1
         if i % 500 == 0:   # print status
             trainer.status()
-            print this_loss / this_tagged
+            print (this_loss / this_tagged)
             all_tagged += this_tagged
             this_loss = this_tagged = 0
         if i % 10000 == 0: # eval on dev
@@ -196,5 +196,5 @@ for ITER in xrange(10):
         this_tagged += len(golds)
         loss_exp.backward()
         trainer.update()
-    print "epoch %r finished" % ITER
+    print ("epoch %r finished" % ITER)
     trainer.update_epoch(1.0)

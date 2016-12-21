@@ -13,7 +13,7 @@ DYNET_LIB=-ldynet
 # CXX_FLAGS=-std=c++11 -I${EIGEN_PATH} -I${DYNET_PATH} -L${DYNET_PATH}/build/dynet -lc++ ${DYNET_LIB} -Ofast
 # *** Linux
 CC=g++
-CXX_FLAGS=-std=c++11 -I${EIGEN_PATH} -I${DYNET_PATH} -L${DYNET_PATH}/build/dynet -lboost_regex ${DYNET_LIB} -Ofast
+CXX_FLAGS=-std=c++11 -I${EIGEN_PATH} -I${DYNET_PATH} -L${DYNET_PATH}/build/dynet -DBOOST_REGEX -lboost_regex ${DYNET_LIB} -Ofast
 
 all: rnnlm-batch recnn bilstm-tagger bilstm-tagger-withchar
 

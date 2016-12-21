@@ -112,13 +112,13 @@ test_order = [x*MB_SIZE for x in range((len(test)-1)/MB_SIZE + 1)]
 print ("startup time: %r" % (time.time() - start))
 # Perform training
 start = time.time()
-for ITER in xrange(10):
+for ITER in range(10):
     random.shuffle(train_order)
     for sid in train_order: 
         i += 1
         if i % int(500/MB_SIZE) == 0:
             trainer.status()
-            print this_loss / this_words
+            print (this_loss / this_words)
             all_tagged += this_words
             this_loss = this_words = 0
         if i % int(10000/MB_SIZE) == 0:
@@ -139,5 +139,5 @@ for ITER in xrange(10):
         this_words += mb_words
         loss_exp.backward()
         trainer.update()
-    print "epoch %r finished" % ITER
+    print ("epoch %r finished" % ITER)
     trainer.update_epoch(1.0)

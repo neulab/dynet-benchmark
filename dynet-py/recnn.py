@@ -151,7 +151,7 @@ trainer.set_sparse_updates(False)
 
 sents = 0
 all_time = 0
-for ITER in xrange(50):
+for ITER in range(50):
     random.shuffle(train)
     closs = 0.0
     cwords = 0
@@ -170,7 +170,7 @@ for ITER in xrange(50):
         trainer.update()
         if sents % 1000 == 0:
             trainer.status()
-            print closs / cwords
+            print (closs / cwords)
             closs = 0.0
             cwords = 0
     all_time += time.time() - start
