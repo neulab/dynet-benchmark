@@ -1,7 +1,9 @@
+import time
+start = time.time()
+
 from collections import Counter, defaultdict
 from itertools import count
 import random
-import time
 import sys
 
 from chainer import Chain, Variable
@@ -9,11 +11,16 @@ import chainer.functions as F
 import chainer.links as L
 import chainer.optimizers as O
 
-if len(sys.argv) != 2:
-  print("usage: %s (GPU-ID or -1 to use CPU)" % sys.argv[0])
+if len(sys.argv) != 6:
+  print("Usage: %s CEMBED_SIZE WEMBED_SIZE HIDDEN_SIZE MLP_SIZE TIMEOUT" % sys.argv[0])
   sys.exit(1)
+CEMBED_SIZE = int(sys.argv[1])
+WEMBED_SIZE = int(sys.argv[2])
+HIDDEN_SIZE = int(sys.argv[3])
+MLP_SIZE = int(sys.argv[4])
+TIMEOUT = int(sys.argv[5]) 
 
-GPUID = int(sys.argv[1])
+GPUID = -1
 
 if GPUID >= 0:
   # use GPU
@@ -85,17 +92,17 @@ print ("nwords=%r, ntags=%r, nchars=%r" % (nwords, ntags, nchars))
 class Tagger(Chain):
   def __init__(self):
     super(Tagger, self).__init__(
-        embedW=L.EmbedID(nwords, 128),
-        embedC=L.EmbedID(nwords, 20),
+        embedW=L.EmbedID(nwords, WEMBED_SIZE),
+        embedC=L.EmbedID(nwords, CEMBED_SIZE),
         # MLP on top of biLSTM outputs 100 -> 32 -> ntags
-        WH=L.Linear(50*2, 32, nobias=True),
-        WO=L.Linear(32, ntags, nobias=True),
+        WH=L.Linear(HIDDEN_SIZE/2, MLP_SIZE, nobias=True),
+        WO=L.Linear(MLP_SIZE, ntags, nobias=True),
         # word-level LSTMs
-        fwdRNN=L.LSTM(128, 50),
-        bwdRNN=L.LSTM(128, 50),
+        fwdRNN=L.LSTM(WEMBED_SIZE, HIDDEN_SIZE),
+        bwdRNN=L.LSTM(WEMBED_SIZE, HIDDEN_SIZE),
         # char-level LSTMs,
-        cFwdRNN=L.LSTM(20, 64),
-        cBwdRNN=L.LSTM(20, 64),
+        cFwdRNN=L.LSTM(CEMBED_SIZE, WEMBED_SIZE/2),
+        cBwdRNN=L.LSTM(CEMBED_SIZE, WEMBED_SIZE/2),
     )
 
   def word_rep(self, w):
@@ -150,6 +157,7 @@ trainer = O.Adam()
 trainer.use_cleargrads()
 trainer.setup(tagger)
 
+print ("startup time: %r" % (time.time() - start))
 start = time.time()
 i = all_time = all_tagged = this_tagged = this_loss = 0
 for ITER in xrange(10):
@@ -177,7 +185,7 @@ for ITER in xrange(10):
           else:
             bad += 1
       print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), all_time, all_tagged/all_time))
-      if all_time > 3600:
+      if all_time > TIMEOUT:
         sys.exit(0)
       start = time.time()
     # train on sent
