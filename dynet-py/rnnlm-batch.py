@@ -2,7 +2,6 @@ import time
 start = time.time()
 
 from collections import Counter, defaultdict
-from itertools import count
 import random
 import math
 import sys
@@ -22,14 +21,14 @@ TIMEOUT = int(sys.argv[4])
 train_file="data/text/train.txt"
 test_file="data/text/dev.txt"
 
-w2i = defaultdict(count(0).next)
+w2i = defaultdict(lambda: len(w2i))
 
 def read(fname):
     """
     Read a file where each line is of the form "word1 word2 ..."
     Yields lists of the form [word1, word2, ...]
     """
-    with file(fname) as fh:
+    with open(fname, "r") as fh:
         for line in fh:
             sent = [w2i[x] for x in line.strip().split()]
             sent.append(w2i["<s>"])
@@ -106,8 +105,8 @@ i = all_time = all_tagged = this_words = this_loss = 0
 # Sort training sentences in descending order and count minibatches
 train.sort(key=lambda x: -len(x))
 test.sort(key=lambda x: -len(x))
-train_order = [x*MB_SIZE for x in range((len(train)-1)/MB_SIZE + 1)]
-test_order = [x*MB_SIZE for x in range((len(test)-1)/MB_SIZE + 1)]
+train_order = [x*MB_SIZE for x in range(int((len(train)-1)/MB_SIZE + 1))]
+test_order = [x*MB_SIZE for x in range(int((len(test)-1)/MB_SIZE + 1))]
 
 print ("startup time: %r" % (time.time() - start))
 # Perform training
