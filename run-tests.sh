@@ -1,11 +1,12 @@
 #!/bin/bash
+set -e
 
-ANACONDA_PATH=$HOME/usr/local/anaconda3/envs/benchmark2/lib/
-CUDA_PATH=/usr/local/cuda-7.5
-DYNET_PATH=$HOME/work/dynet
-LD_LIBRARY_PATH=$DYNET_PATH/build/dynet:$CUDA_PATH/lib64
-LIBRARY_PATH=$DYNET_PATH/build/dynet:$CUDA_PATH/lib64
-PYTHONPATH=$DYNET_PATH/build/python
+export ANACONDA_PATH=$HOME/usr/local/anaconda3/envs/benchmark2
+export CUDA_PATH=/usr/local/cuda-7.5
+export DYNET_PATH=$HOME/work/dynet
+export LD_LIBRARY_PATH=$DYNET_PATH/build/dynet:$ANACONDA_PATH/lib:$CUDA_PATH/lib64
+export LIBRARY_PATH=$DYNET_PATH/build/dynet:$ANACONDA_PATH/lib:$CUDA_PATH/lib64
+export PYTHONPATH=$DYNET_PATH/build/python
 PYTHON=python
 DYNET_MEM=512
 
@@ -15,12 +16,18 @@ for trial in 1 2 3; do
   for embsize in 64 128; do
     hidsize=$(($embsize*2))
     for mbsize in 16 8 4 2 1; do
+      LFILE=log/rnnlm-batch/dynet-cpp-ms$mbsize-es$embsize-hs$hidsize-t$trial.log
+      if [[ ! -e $LFILE ]]; then 
+        echo "dynet-cpp/rnnlm-batch $mbsize $embsize $hidsize 600 &> $LFILE"
+        dynet-cpp/rnnlm-batch $mbsize $embsize $hidsize 600 &> $LFILE
+      fi
       for f in dynet-py theano tensorflow chainer; do
-        echo "$PYTHON $f/rnnlm-batch.py $mbsize $embsize $hidsize 600 &> log/rnnlm-batch/$f-ms$mbsize-es$embsize-hs$hidsize-t$trial.log"
-        $PYTHON $f/rnnlm-batch.py $mbsize $embsize $hidsize 600 &> log/rnnlm-batch/$f-ms$mbsize-es$embsize-hs$hidsize-t$trial.log
+        LFILE=log/rnnlm-batch/$f-ms$mbsize-es$embsize-hs$hidsize-t$trial.log
+        if [[ ! -e $LFILE ]]; then 
+          echo "$PYTHON $f/rnnlm-batch.py $mbsize $embsize $hidsize 600 &> $LFILE"
+          $PYTHON $f/rnnlm-batch.py $mbsize $embsize $hidsize 600 &> $LFILE
+        fi
       done
-      echo "dynet-cpp/rnnlm-batch &> log/rnnlm-batch/dynet-cpp-ms$mbsize-es$embsize-hs$hidsize-t$trial.log"
-      dynet-cpp/rnnlm-batch &> log/rnnlm-batch/dynet-cpp-ms$mbsize-es$embsize-hs$hidsize-t$trial.log
     done
   done
 done
