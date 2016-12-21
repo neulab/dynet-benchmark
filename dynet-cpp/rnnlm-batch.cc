@@ -59,8 +59,8 @@ struct RNNLanguageModel {
     // start the rnn by inputting "<s>"
     size_t tot_sents = min(sent.size()-pos, (size_t)mb_size);
     vector<unsigned> wids(tot_sents, 0);
-    vector<float> masks(tot_sents)
-    Expression s = builder.add_input(lookup(cg, p_c, wirds)); 
+    vector<float> masks(tot_sents);
+    Expression s = builder.add_input(lookup(cg, p_c, wids)); 
 
     // feed word vectors into the RNN and predict the next word
     vector<Expression> losses;
