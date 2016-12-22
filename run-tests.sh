@@ -17,6 +17,8 @@ runcmd() {
       mycmd="$1/$2 --dynet_mem 1024"
     elif [[ $1 == "dynet-py" ]]; then
       mycmd="$PYTHON -u $1/$2.py --dynet_mem 1024"
+    elif [[ $1 == "theano" ]]; then
+      mycmd="THEANO_FLAGS=device=cpu,floatX=float32 $PYTHON -u $1/$2.py"
     else
       mycmd="$PYTHON -u $1/$2.py"
     fi
@@ -25,7 +27,7 @@ runcmd() {
   fi
 }
 
-# Run RNNLM-Batch
+# Run rnnlm-batch
 mkdir -p log/rnnlm-batch
 for trial in 1; do
   for embsize in 64 128; do
@@ -44,7 +46,6 @@ for trial in 1; do
   wembsize=128
   hidsize=50
   mlpsize=32
-  # for f in theano tensorflow chainer; do
   for f in dynet-cpp dynet-py theano tensorflow chainer; do
     runcmd $f bilstm-tagger "$wembsize $hidsize $mlpsize 0 $TIMEOUT" log/bilstm-tagger/$f-ws$wembsize-hs$hidsize-mlps$mlpsize-su0-t$trial.log
     if [[ $f == dynet* ]]; then
@@ -53,21 +54,17 @@ for trial in 1; do
   done
 done
 
-# # Run python tests
-# $PYTHON -u dynet-py/bilstm-tagger.py --dynet-mem $DYNET_MEM
-# $PYTHON -u dynet-py/bilstm-tagger-withchar.py --dynet-mem $DYNET_MEM
-# $PYTHON -u dynet-py/rnnlm-batch.py --dynet-mem $DYNET_MEM
-# $PYTHON -u dynet-py/recnn.py --dynet-mem $DYNET_MEM
-
-# Run C++ tests
-# dynet-cpp/bilstm-tagger --dynet-mem $DYNET_MEM
-# dynet-cpp/bilstm-tagger-withchar --dynet-mem $DYNET_MEM
-# dynet-cpp/rnnlm-batch --dynet-mem $DYNET_MEM 10 128 256
-# dynet-cpp/recnn --dynet-mem $DYNET_MEM
-
-# # Run Chainer tests
-# $PYTHON -u chainer/rnnlm-batch.py $CHAINER_GPUID
-
-# Run Theano tests
-# THEANO_FLAGS=device=cpu,floatX=float32 $PYTHON -u theano/rnnlm-batch.py 10
-
+# Run bilstm-tagger-withchar
+mkdir -p log/bilstm-tagger-withchar
+for trial in 1; do
+  cembsize=20
+  wembsize=128
+  hidsize=50
+  mlpsize=32
+  for f in dynet-cpp dynet-py theano chainer; do
+    runcmd $f bilstm-tagger-withchar "$cembsize $wembsize $hidsize $mlpsize 0 $TIMEOUT" log/bilstm-tagger-withchar/$f-ws$wembsize-hs$hidsize-mlps$mlpsize-su0-t$trial.log
+    if [[ $f == dynet* ]]; then
+      runcmd $f bilstm-tagger-withchar "$cembsize $wembsize $hidsize $mlpsize 1 $TIMEOUT" log/bilstm-tagger-withchar/$f-ws$wembsize-hs$hidsize-mlps$mlpsize-su1-t$trial.log
+    fi
+  done
+done

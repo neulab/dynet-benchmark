@@ -224,6 +224,7 @@ int main(int argc, char**argv) {
   Model model;
   AdamTrainer trainer(model, 0.001);
   trainer.sparse_updates_enabled = false;
+  trainer.clipping_enabled = false;
 
   // Builder
   Parameter W_param = model.add_parameters({nonterm_voc.size(), 30});

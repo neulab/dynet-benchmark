@@ -12,14 +12,14 @@ import chainer.functions as F
 import chainer.links as L
 import chainer.optimizers as O
 
-if len(sys.argv) != 6:
-  print("Usage: %s CEMBED_SIZE WEMBED_SIZE HIDDEN_SIZE MLP_SIZE TIMEOUT" % sys.argv[0])
-  sys.exit(1)
-CEMBED_SIZE = int(sys.argv[1])
-WEMBED_SIZE = int(sys.argv[2])
-HIDDEN_SIZE = int(sys.argv[3])
-MLP_SIZE = int(sys.argv[4])
-TIMEOUT = int(sys.argv[5]) 
+parser = argparse.ArgumentParser()
+parser.add_argument('CEMBED_SIZE', type=int, help='char embedding size')
+parser.add_argument('WEMBED_SIZE', type=int, help='embedding size')
+parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
+parser.add_argument('MLP_SIZE', type=int, help='embedding size')
+parser.add_argument('SPARSE', type=int, help='sparse update 0/1')
+parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
+args = parser.parse_args()
 
 GPUID = -1
 
@@ -93,17 +93,17 @@ print ("nwords=%r, ntags=%r, nchars=%r" % (nwords, ntags, nchars))
 class Tagger(Chain):
   def __init__(self):
     super(Tagger, self).__init__(
-        embedW=L.EmbedID(nwords, WEMBED_SIZE),
-        embedC=L.EmbedID(nwords, CEMBED_SIZE),
+        embedW=L.EmbedID(nwords, args.WEMBED_SIZE),
+        embedC=L.EmbedID(nwords, args.CEMBED_SIZE),
         # MLP on top of biLSTM outputs 100 -> 32 -> ntags
-        WH=L.Linear(HIDDEN_SIZE/2, MLP_SIZE, nobias=True),
-        WO=L.Linear(MLP_SIZE, ntags, nobias=True),
+        WH=L.Linear(args.HIDDEN_SIZE/2, args.MLP_SIZE, nobias=True),
+        WO=L.Linear(args.MLP_SIZE, ntags, nobias=True),
         # word-level LSTMs
-        fwdRNN=L.LSTM(WEMBED_SIZE, HIDDEN_SIZE),
-        bwdRNN=L.LSTM(WEMBED_SIZE, HIDDEN_SIZE),
+        fwdRNN=L.LSTM(args.WEMBED_SIZE, args.HIDDEN_SIZE),
+        bwdRNN=L.LSTM(args.WEMBED_SIZE, args.HIDDEN_SIZE),
         # char-level LSTMs,
-        cFwdRNN=L.LSTM(CEMBED_SIZE, WEMBED_SIZE/2),
-        cBwdRNN=L.LSTM(CEMBED_SIZE, WEMBED_SIZE/2),
+        cFwdRNN=L.LSTM(args.CEMBED_SIZE, args.WEMBED_SIZE/2),
+        cBwdRNN=L.LSTM(args.CEMBED_SIZE, args.WEMBED_SIZE/2),
     )
 
   def word_rep(self, w):
@@ -186,7 +186,7 @@ for ITER in xrange(10):
           else:
             bad += 1
       print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), all_time, all_tagged/all_time))
-      if all_time > TIMEOUT:
+      if all_time > args.TIMEOUT:
         sys.exit(0)
       start = time.time()
     # train on sent
