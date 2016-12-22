@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
   dynet::initialize(argc, argv);
   Model model;
 
-  if(argc != 5) {
+  if(argc != 6) {
     cerr << "Usage: " << argv[0] << " MB_SIZE EMBED_SIZE HIDDEN_SIZE SPARSE TIMEOUT" << endl;
     return 1;
   }
