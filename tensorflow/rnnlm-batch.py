@@ -71,10 +71,11 @@ cell = tf.nn.rnn_cell.BasicLSTMCell(args.HIDDEN_SIZE)
 cell = tf.nn.rnn_cell.MultiRNNCell([cell] * NUM_LAYERS, state_is_tuple=True)
 
 # input sentence placeholder
-x_input = tf.placeholder(tf.int32, [args.MB_SIZE, max_length], name="x_input")
-x_lens = tf.placeholder(tf.int32, [args.MB_SIZE], name='x_lens')
+x_input = tf.placeholder(tf.int32, [None, max_length], name="x_input")
+x_lens = tf.placeholder(tf.int32, [None], name='x_lens')
 
 x_embs = tf.squeeze(tf.nn.embedding_lookup(WORDS_LOOKUP, x_input))
+x_embs.set_shape([None, max_length, args.EMBED_SIZE])
 cell_out = tf.nn.rnn_cell.OutputProjectionWrapper(cell, nwords)
 outputs, _ = tf.nn.dynamic_rnn(cell_out, x_embs, sequence_length=x_lens, dtype=tf.float32)
 losses = tf.nn.sparse_softmax_cross_entropy_with_logits(outputs, x_input)
