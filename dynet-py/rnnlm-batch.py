@@ -50,7 +50,7 @@ trainer.set_clip_threshold(-1.0)
 trainer.set_sparse_updates(False)
 
 # Lookup parameters for word embeddings
-WORDS_LOOKUP = model.add_lookup_parameters((nwords, 64))
+WORDS_LOOKUP = model.add_lookup_parameters((nwords, args.EMBED_SIZE))
 
 # Word-level LSTM (layers=1, input=64, output=128, model)
 RNN = dy.VanillaLSTMBuilder(1, args.EMBED_SIZE, args.HIDDEN_SIZE, model)
