@@ -116,18 +116,20 @@ int main(int argc, char** argv) {
   // DyNet Starts
   dynet::initialize(argc, argv);
   Model model;
-  AdamTrainer trainer(model, 0.001);
-  trainer.sparse_updates_enabled = false;
-  trainer.clipping_enabled = false;
 
   if(argc != 5) {
-    cerr << "Usage: " << argv[0] << " MB_SIZE EMBED_SIZE HIDDEN_SIZE TIMEOUT" << endl;
+    cerr << "Usage: " << argv[0] << " MB_SIZE EMBED_SIZE HIDDEN_SIZE SPARSE TIMEOUT" << endl;
     return 1;
   }
   int MB_SIZE = atoi(argv[1]);
   int EMBED_SIZE = atoi(argv[2]);
   int HIDDEN_SIZE = atoi(argv[3]);
-  int TIMEOUT = atoi(argv[4]);
+  int SPARSE = atoi(argv[4]);
+  int TIMEOUT = atoi(argv[5]);
+
+  AdamTrainer trainer(model, 0.001);
+  trainer.sparse_updates_enabled = SPARSE;
+  trainer.clipping_enabled = false;
 
   Dict vw;
   vw.convert("<s>");

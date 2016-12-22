@@ -16,6 +16,7 @@ parser.add_argument("--dynet_mem", default=512, type=int)
 parser.add_argument('MB_SIZE', type=int, help='minibatch size')
 parser.add_argument('EMBED_SIZE', type=int, help='embedding size')
 parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
+parser.add_argument('SPARSE', type=int, help='sparse update 0/1')
 parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
 args = parser.parse_args()
 
@@ -47,7 +48,7 @@ assert(nwords == len(w2i))
 model = dy.Model()
 trainer = dy.AdamTrainer(model)
 trainer.set_clip_threshold(-1.0)
-trainer.set_sparse_updates(False)
+trainer.set_sparse_updates(True if args.SPARSE == 1 else False)
 
 # Lookup parameters for word embeddings
 WORDS_LOOKUP = model.add_lookup_parameters((nwords, args.EMBED_SIZE))

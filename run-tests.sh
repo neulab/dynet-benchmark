@@ -34,7 +34,10 @@ for trial in 1; do
     hidsize=$(($embsize*2))
     for mbsize in 16 08 04 02 01; do
       for f in dynet-cpp dynet-py theano chainer tensorflow; do
-        runcmd $f rnnlm-batch "$mbsize $embsize $hidsize $TIMEOUT" log/rnnlm-batch/$f-ms$mbsize-es$embsize-hs$hidsize-t$trial.log
+        runcmd $f rnnlm-batch "$mbsize $embsize $hidsize 0 $TIMEOUT" log/rnnlm-batch/$f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial.log
+        if [[ $f == dynet* ]]; then
+          runcmd $f rnnlm-batch "$mbsize $embsize $hidsize 1 $TIMEOUT" log/rnnlm-batch/$f-ms$mbsize-es$embsize-hs$hidsize-sp1-t$trial.log
+        fi
       done
     done
   done

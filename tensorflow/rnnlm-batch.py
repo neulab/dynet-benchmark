@@ -15,6 +15,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('MB_SIZE', type=int, help='minibatch size')
 parser.add_argument('EMBED_SIZE', type=int, help='embedding size')
 parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
+parser.add_argument('SPARSE', type=int, help='sparse update 0/1')
 parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
 args = parser.parse_args()
 
