@@ -110,7 +110,7 @@ for ITER in xrange(10):
 
       for tid in test_order:
         t_examples = test[tid:tid+args.MB_SIZE]
-        x_lens_in = [len(example) for example in examples]
+        x_lens_in = [len(example) for example in t_examples]
         x_in = [pad(example, S, max(x_lens_in)) for example in t_examples]
         test_loss = sess.run(loss, feed_dict={x_input: x_in, x_lens: x_lens_in})
         tot_words = sum([len(t_example) for t_example in t_examples])
