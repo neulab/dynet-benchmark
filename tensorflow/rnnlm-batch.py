@@ -93,8 +93,8 @@ print >>sys.stderr, 'Session initialized.'
 train_losses = [] 
 print ("startup time: %r" % (time.time() - start))
 start = time.time()
-i = all_time = all_tagged = train_words = 0
-for ITER in xrange(10):
+i = all_time = dev_time = all_tagged = train_words = 0
+for ITER in range(10):
   random.shuffle(train_order)
   for i,sid in enumerate(train_order, start=1):
     if i % int(500/args.MB_SIZE) == 0:
@@ -102,8 +102,9 @@ for ITER in xrange(10):
       all_tagged += train_words
       train_losses = []
       train_words = 0
-
-    if i % int(10000/args.MB_SIZE) == 0:
+      all_time = time.time() - start
+    if i % int(10000 / args.MB_SIZE) == 0 or all_time > args.TIMEOUT:
+      dev_start = time.time()
       test_losses = []
       test_words = 0
       all_time += time.time() - start
@@ -118,10 +119,11 @@ for ITER in xrange(10):
         test_losses.append(test_loss * tot_words)
         test_words += tot_words
       nll = sum(test_losses) / test_words
-      print >>sys.stderr, 'nll=%.4f, ppl=%.4f, time=%.4f, words_per_sec=%.4f' % (nll, math.exp(nll), all_time, all_tagged/all_time)
+      dev_time += time.time() - dev_start 
+      train_time = time.time() - start - dev_time
+      print >>sys.stderr, 'nll=%.4f, ppl=%.4f, time=%.4f, words_per_sec=%.4f' % (nll, math.exp(nll), train_time, all_tagged/train_time)
       if all_time > args.TIMEOUT:
         sys.exit(0)
-      start = time.time()
 
     # train on sent
     examples = train[sid : sid+args.MB_SIZE]

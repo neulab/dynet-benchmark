@@ -166,7 +166,7 @@ def tag_sent(words):
 
 print ("startup time: %r" % (time.time() - start))
 start = time.time()
-i = all_time = all_tagged = this_tagged = this_loss = 0
+i = all_time = dev_time = all_tagged = this_tagged = this_loss = 0
 for ITER in range(10):
   random.shuffle(train)
   for s in train:
@@ -176,8 +176,9 @@ for ITER in range(10):
       print (this_loss / this_tagged, file=sys.stderr)
       all_tagged += this_tagged
       this_loss = this_tagged = 0
-    if i % 10000 == 0: # eval on dev
-      all_time += time.time() - start
+      all_time = time.time() - start
+    if i % 10000 == 0 or all_time > args.TIMEOUT: # eval on dev
+      dev_start = time.time()
       good_sent = bad_sent = good = bad = 0.0
       for sent in dev:
         words = [w for w,t in sent]
@@ -187,11 +188,13 @@ for ITER in range(10):
         else: bad_sent += 1
         for go,gu in zip(golds,tags):
           if go == gu: good += 1
-          else: bad += 1
-      print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), all_time, all_tagged/all_time))
-      if all_time > args.TIMEOUT:
+          else:
+      dev_time += time.time() - dev_start 
+      train_time = time.time() - start - dev_time
+bad += 1
+      print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), train_time, all_tagged/train_time))
+      if train_time > args.TIMEOUT:
         sys.exit(0)
-      start = time.time()
     # train on sent
     words = [w for w,t in s]
     golds = [t for w,t in s]

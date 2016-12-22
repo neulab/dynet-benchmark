@@ -119,7 +119,6 @@ def calc_lm_loss(sents):
 
   return sum(losses), tot_words
 
-i = all_time = all_tagged = this_words = this_loss = 0
 # Sort training sentences in descending order and count minibatches
 train.sort(key=lambda x: -len(x))
 test.sort(key=lambda x: -len(x))
@@ -128,6 +127,7 @@ test_order = [x*args.MB_SIZE for x in range((len(test)-1)/args.MB_SIZE + 1)]
 # Perform training
 print ("startup time: %r" % (time.time() - start))
 start = time.time()
+i = all_time = dev_time = all_tagged = this_words = this_loss = 0
 for ITER in xrange(10):
   random.shuffle(train_order)
   for sid in train_order:
@@ -136,17 +136,19 @@ for ITER in xrange(10):
       print(this_loss / this_words)
       all_tagged += this_words
       this_loss = this_words = 0
-    if i % int(10000/args.MB_SIZE) == 0:
-      all_time += time.time() - start
+      all_time = time.time() - start
+    if i % int(10000 / args.MB_SIZE) == 0 or all_time > args.TIMEOUT:
+      dev_start = time.time()
       dev_loss = dev_words = 0
       for sid in test_order:
         loss_exp, mb_words = calc_lm_loss(test[sid:sid+args.MB_SIZE])
         dev_loss += float(loss_exp.data)
         dev_words += mb_words
-      print("nll=%.4f, ppl=%.4f, words=%r, time=%.4f, word_per_sec=%.4f" % (dev_loss/dev_words, math.exp(dev_loss/dev_words), dev_words, all_time, all_tagged/all_time))
-      if all_time > args.TIMEOUT:
+      dev_time += time.time() - dev_start 
+      train_time = time.time() - start - dev_time
+      print("nll=%.4f, ppl=%.4f, words=%r, time=%.4f, word_per_sec=%.4f" % (dev_loss/dev_words, math.exp(dev_loss/dev_words), dev_words, train_time, all_tagged/train_time))
+      if train_time > args.TIMEOUT:
         sys.exit(0)
-      start = time.time()
     # train on the minibatch
     loss_exp, mb_words = calc_lm_loss(train[sid:sid+args.MB_SIZE])
     this_loss += float(loss_exp.data)

@@ -216,7 +216,7 @@ train_func, decode_func = build_tag_graph()
 
 print("startup time: %r" % (time.time() - start))
 start = time.time()
-i = all_time = all_tagged = this_tagged = this_loss = 0
+i = all_time = dev_time = all_tagged = this_tagged = this_loss = 0
 
 for ITER in range(50):
   random.shuffle(train)
@@ -227,8 +227,9 @@ for ITER in range(50):
       print(this_loss / this_tagged)
       all_tagged += this_tagged
       this_loss = this_tagged = 0
-
-    if i % 10000 == 0:  # eval on dev
+      all_time = time.time() - start
+    if i % 10000 == 0 or all_time > args.TIMEOUT: # eval on dev
+      dev_start = time.time()
       all_time += time.time() - start
       good_sent = bad_sent = good = bad = 0.0
       for sent in dev:
@@ -247,12 +248,13 @@ for ITER in range(50):
           else:
             bad += 1
 
+      dev_time += time.time() - dev_start 
+      train_time = time.time() - start - dev_time
       print("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (
-           good / (good + bad), good_sent / (good_sent + bad_sent), all_time, all_tagged / all_time))
+           good / (good + bad), good_sent / (good_sent + bad_sent), train_time, all_tagged / train_time))
 
-      if all_time > 300:
+      if train_time > args.TIMEOUT:
         sys.exit(0)
-      start = time.time()
 
     # train on training sentences
 
