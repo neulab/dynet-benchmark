@@ -6,6 +6,7 @@ from collections import Counter, defaultdict
 from itertools import count
 import random
 import sys
+import argparse
 
 from chainer import Chain, Variable
 import chainer.functions as F
@@ -86,7 +87,7 @@ UNK = vw.w2i["_UNK_"]
 nwords = vw.size()
 ntags  = vt.size()
 nchars  = vc.size()
-print ("nwords=%r, ntags=%r, nchars=%r" % (nwords, ntags, nchars))
+print("nwords=%r, ntags=%r, nchars=%r" % (nwords, ntags, nchars))
 
 # Chainer Starts
 
@@ -96,7 +97,7 @@ class Tagger(Chain):
         embedW=L.EmbedID(nwords, args.WEMBED_SIZE),
         embedC=L.EmbedID(nwords, args.CEMBED_SIZE),
         # MLP on top of biLSTM outputs 100 -> 32 -> ntags
-        WH=L.Linear(args.HIDDEN_SIZE/2, args.MLP_SIZE, nobias=True),
+        WH=L.Linear(args.HIDDEN_SIZE*2, args.MLP_SIZE, nobias=True),
         WO=L.Linear(args.MLP_SIZE, ntags, nobias=True),
         # word-level LSTMs
         fwdRNN=L.LSTM(args.WEMBED_SIZE, args.HIDDEN_SIZE),
@@ -158,7 +159,7 @@ trainer = O.Adam()
 trainer.use_cleargrads()
 trainer.setup(tagger)
 
-print ("startup time: %r" % (time.time() - start))
+print("startup time: %r" % (time.time() - start))
 start = time.time()
 i = all_time = all_tagged = this_tagged = this_loss = 0
 for ITER in xrange(10):
@@ -166,7 +167,7 @@ for ITER in xrange(10):
   for s in train:
     i += 1
     if i % 500 == 0:   # print status
-      print this_loss / this_tagged
+      print(this_loss / this_tagged)
       all_tagged += this_tagged
       this_loss = this_tagged = 0
     if i % 10000 == 0: # eval on dev
@@ -185,7 +186,7 @@ for ITER in xrange(10):
             good += 1
           else:
             bad += 1
-      print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), all_time, all_tagged/all_time))
+      print("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), all_time, all_tagged/all_time))
       if all_time > args.TIMEOUT:
         sys.exit(0)
       start = time.time()
@@ -200,5 +201,5 @@ for ITER in xrange(10):
     loss_exp.backward()
     trainer.update()
 
-  print "epoch %r finished" % ITER
+  print("epoch %r finished" % ITER)
   trainer.update_epoch(1.0)

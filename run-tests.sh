@@ -62,9 +62,9 @@ for trial in 1; do
   hidsize=50
   mlpsize=32
   for f in dynet-cpp dynet-py theano chainer; do
-    runcmd $f bilstm-tagger-withchar "$cembsize $wembsize $hidsize $mlpsize 0 $TIMEOUT" log/bilstm-tagger-withchar/$f-ws$wembsize-hs$hidsize-mlps$mlpsize-su0-t$trial.log
+    runcmd $f bilstm-tagger-withchar "$cembsize $wembsize $hidsize $mlpsize 0 $TIMEOUT" log/bilstm-tagger-withchar/$f-cs$cembsize-ws$wembsize-hs$hidsize-mlps$mlpsize-su0-t$trial.log
     if [[ $f == dynet* ]]; then
-      runcmd $f bilstm-tagger-withchar "$cembsize $wembsize $hidsize $mlpsize 1 $TIMEOUT" log/bilstm-tagger-withchar/$f-ws$wembsize-hs$hidsize-mlps$mlpsize-su1-t$trial.log
+      runcmd $f bilstm-tagger-withchar "$cembsize $wembsize $hidsize $mlpsize 1 $TIMEOUT" log/bilstm-tagger-withchar/$f-cs$cembsize-ws$wembsize-hs$hidsize-mlps$mlpsize-su1-t$trial.log
     fi
   done
 done

@@ -92,7 +92,7 @@ assert char_mask == 0
 nwords = vw.size()
 ntags  = vt.size()
 nchars  = vc.size()
-print ("nwords=%r, ntags=%r, nchars=%r" % (nwords, ntags, nchars))
+print("nwords=%r, ntags=%r, nchars=%r" % (nwords, ntags, nchars))
 
 
 def word2id(w):
@@ -104,7 +104,7 @@ def word2id(w):
 
 
 def build_tag_graph():
-  print >> sys.stderr, 'build graph..'
+  print('build graph..', file=sys.stderr)
 
   # (sentence_length)
   # word indices for a sentence
@@ -214,17 +214,17 @@ def tag_sent(sent, decode_func):
 
 train_func, decode_func = build_tag_graph()
 
+print("startup time: %r" % (time.time() - start))
 start = time.time()
 i = all_time = all_tagged = this_tagged = this_loss = 0
 
-print ("startup time: %r" % (time.time() - start))
 for ITER in range(50):
   random.shuffle(train)
   for s in train:
     i += 1
 
     if i % 500 == 0:  # print status
-      print this_loss / this_tagged
+      print(this_loss / this_tagged)
       all_tagged += this_tagged
       this_loss = this_tagged = 0
 
@@ -247,7 +247,7 @@ for ITER in range(50):
           else:
             bad += 1
 
-      print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (
+      print("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (
            good / (good + bad), good_sent / (good_sent + bad_sent), all_time, all_tagged / all_time))
 
       if all_time > 300:
@@ -265,6 +265,6 @@ for ITER in range(50):
 
     this_loss += loss
     this_tagged += len(s)
-    # print 'loss: %f' % loss
+    # print('loss: %f' % loss)
 
-  print "epoch %r finished" % ITER
+  print("epoch %r finished" % ITER)
