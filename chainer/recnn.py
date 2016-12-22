@@ -7,17 +7,21 @@ import codecs
 from collections import Counter
 import random
 import sys
+import argparse
 
 from chainer import Chain, Variable
 import chainer.functions as F
 import chainer.links as L
 import chainer.optimizers as O
 
-if len(sys.argv) != 2:
-  print("usage: %s (GPU-ID or -1 to use CPU)" % sys.argv[0])
-  sys.exit(1)
+parser = argparse.ArgumentParser()
+parser.add_argument('WEMBED_SIZE', type=int, help='embedding size')
+parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
+parser.add_argument('SPARSE', type=int, help='sparse update 0/1')
+parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
+args = parser.parse_args()
 
-GPUID = int(sys.argv[1])
+GPUID = -1
 
 if GPUID >= 0:
   # use GPU
@@ -165,7 +169,7 @@ dev = read_dataset("data/trees/dev.txt")
 
 l2i, w2i, i2l, i2w = get_vocabs(train)
 
-tlm = TreeLSTM(w2i, 300, 30, len(l2i))
+tlm = TreeLSTM(w2i, args.WEMBED_SIZE, args.HIDDEN_SIZE, len(l2i))
 if GPUID >= 0:
   tlm.to_gpu()
 
@@ -173,7 +177,7 @@ trainer = O.Adam()
 trainer.use_cleargrads()
 trainer.setup(tlm)
 
-print ("startup time: %r" % (time.time() - start))
+print("startup time: %r" % (time.time() - start))
 sents = 0
 all_time = 0
 for ITER in range(50):
@@ -193,7 +197,7 @@ for ITER in range(50):
     loss.backward()
     trainer.update()
     if sents % 1000 == 0:
-      print closs / cwords
+      print(closs / cwords)
       closs = 0.0
       cwords = 0
   all_time += time.time() - start
@@ -204,6 +208,6 @@ for ITER in range(50):
       good += 1
     else:
       bad += 1
-  print ("sent_acc=%.4f, time=%.4f, sent_per_sec=%.4f" % (good/(good+bad), all_time, sents/all_time))
-  if all_time > 3600:
+  print("sent_acc=%.4f, time=%.4f, sent_per_sec=%.4f" % (good/(good+bad), all_time, sents/all_time))
+  if all_time > args.TIMEOUT:
     sys.exit(0)

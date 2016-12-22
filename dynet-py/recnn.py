@@ -4,11 +4,22 @@ start = time.time()
 
 import re
 import codecs
+import sys
 from collections import Counter
 import random
+import argparse
+
 import numpy as np
 import dynet as dy
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--dynet_seed", default=0, type=int)
+parser.add_argument("--dynet_mem", default=512, type=int)
+parser.add_argument('WEMBED_SIZE', type=int, help='embedding size')
+parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
+parser.add_argument('SPARSE', type=int, help='sparse update 0/1')
+parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
+args = parser.parse_args()
 
 def _tokenize_sexpr(s):
     tokker = re.compile(r" +|[()]|[^ ()]+")
@@ -75,28 +86,6 @@ def get_vocabs(trees):
     w2i = {w:i for i,w in enumerate(words)}
     return l2i, w2i, labels, words
 
-class TreeRNNBuilder(object):
-    def __init__(self, model, word_vocab, hdim):
-        self.W = model.add_parameters((hdim, 2*hdim))
-        self.E = model.add_lookup_parameters((len(word_vocab),hdim))
-        self.w2i = word_vocab
-
-    def expr_for_tree(self, tree, decorate=False):
-        if tree.isleaf():
-            return self.E[self.w2i.get(tree.label,0)]
-        if len(tree.children) == 1:
-            assert(tree.children[0].isleaf())
-            expr = self.expr_for_tree(tree.children[0])
-            if decorate: tree._e = expr
-            return expr
-        assert(len(tree.children) == 2),tree.children[0]
-        e1 = self.expr_for_tree(tree.children[0], decorate)
-        e2 = self.expr_for_tree(tree.children[1], decorate)
-        W = dy.parameter(self.W)
-        expr = dy.tanh(W*dy.concatenate([e1,e2]))
-        if decorate: tree._e = expr
-        return expr
-
 class TreeLSTMBuilder(object):
     def __init__(self, model, word_vocab, wdim, hdim):
         self.WS = [model.add_parameters((hdim, wdim)) for _ in "iou"]
@@ -107,37 +96,35 @@ class TreeLSTMBuilder(object):
         self.w2i = word_vocab
 
     def expr_for_tree(self, tree, decorate=False):
-        if tree.isleaf():
-            return self.E[self.w2i.get(tree.label,0)]
+        assert(not tree.isleaf())
         if len(tree.children) == 1:
             assert(tree.children[0].isleaf())
-            emb = self.expr_for_tree(tree.children[0])
+            emb = self.E[self.w2i.get(tree.children[0].label,0)] 
             Wi,Wo,Wu   = [dy.parameter(w) for w in self.WS]
             bi,bo,bu,_ = [dy.parameter(b) for b in self.BS]
-            i = dy.logistic(dy.affine_transform(bi, Wi, emb))
-            o = dy.logistic(dy.affine_transform(bo, Wo, emb))
-            u = dy.tanh(    dy.affine_transform(bu, Wu, emb))
+            i = dy.logistic(dy.affine_transform([bi, Wi, emb]))
+            o = dy.logistic(dy.affine_transform([bo, Wo, emb]))
+            u = dy.tanh(    dy.affine_transform([bu, Wu, emb]))
             c = dy.cmult(i,u)
-            expr = dy.cmult(o,dy.tanh(c))
-            if decorate: tree._e = expr
-            return expr
+            h = dy.cmult(o,dy.tanh(c))
+            if decorate: tree._e = h
+            return h, c
         assert(len(tree.children) == 2),tree.children[0]
-        e1 = self.expr_for_tree(tree.children[0], decorate)
-        e2 = self.expr_for_tree(tree.children[1], decorate)
+        e1, c1 = self.expr_for_tree(tree.children[0], decorate)
+        e2, c2 = self.expr_for_tree(tree.children[1], decorate)
         Ui,Uo,Uu = [dy.parameter(u) for u in self.US]
         Uf1,Uf2 = [dy.parameter(u) for u in self.UFS]
         bi,bo,bu,bf = [dy.parameter(b) for b in self.BS]
         e = dy.concatenate([e1,e2])
-        i = dy.logistic(dy.affine_transform(bi, Ui, e))
-        o = dy.logistic(dy.affine_transform(bi, Uo, e))
-        f1 = dy.logistic(dy.affine_transform(bf, Uf1, e1))
-        f2 = dy.logistic(dy.affine_transform(bf, Uf2, e2))
-        u = dy.tanh(     dy.affine_transform(bu, Uu, e))
-        c = dy.cmult(i,u) + dy.cmult(f1,e1) + dy.cmult(f2,e2)
+        i = dy.logistic(dy.affine_transform([bi, Ui, e]))
+        o = dy.logistic(dy.affine_transform([bi, Uo, e]))
+        f1 = dy.logistic(dy.affine_transform([bf, Uf1, e1]))
+        f2 = dy.logistic(dy.affine_transform([bf, Uf2, e2]))
+        u = dy.tanh(     dy.affine_transform([bu, Uu, e]))
+        c = dy.cmult(i,u) + dy.cmult(f1,c1) + dy.cmult(f2,c2)
         h = dy.cmult(o,dy.tanh(c))
-        expr = h
-        if decorate: tree._e = expr
-        return expr
+        if decorate: tree._e = h
+        return h, c
 
 train = read_dataset("data/trees/train.txt")
 dev = read_dataset("data/trees/dev.txt")
@@ -145,12 +132,11 @@ dev = read_dataset("data/trees/dev.txt")
 l2i, w2i, i2l, i2w = get_vocabs(train)
 
 model = dy.Model()
-# builder = TreeRNNBuilder(model, w2i, 30)
-builder = TreeLSTMBuilder(model, w2i, 300, 30)
-W_ = model.add_parameters((len(l2i),30))
+builder = TreeLSTMBuilder(model, w2i, args.WEMBED_SIZE, args.HIDDEN_SIZE)
+W_ = model.add_parameters((len(l2i), args.HIDDEN_SIZE))
 trainer = dy.AdamTrainer(model)
 trainer.set_clip_threshold(-1.0)
-trainer.set_sparse_updates(False)
+trainer.set_sparse_updates(True if args.SPARSE == 1 else False)
 
 print ("startup time: %r" % (time.time() - start))
 sents = 0
@@ -164,7 +150,7 @@ for ITER in range(50):
         sents += 1
         dy.renew_cg()
         W = dy.parameter(W_)
-        d = builder.expr_for_tree(tree,True)
+        h, c = builder.expr_for_tree(tree,True)
         nodes = tree.nonterms()
         losses = [dy.pickneglogsoftmax(W*nt._e,l2i[nt.label]) for nt in nodes]
         loss = dy.esum(losses)
@@ -183,9 +169,10 @@ for ITER in range(50):
     for tree in dev:
         dy.renew_cg()
         W = dy.parameter(W_)
-        pred = i2l[np.argmax((W*builder.expr_for_tree(tree,False)).npvalue())]
+        h, c = builder.expr_for_tree(tree,False)
+        pred = i2l[np.argmax((W*h).npvalue())]
         if pred == tree.label: good += 1
         else: bad += 1
     print ("sent_acc=%.4f, time=%.4f, sent_per_sec=%.4f" % (good/(good+bad), all_time, sents/all_time))
-    if all_time > 3600:
+    if all_time > args.TIMEOUT:
         sys.exit(0)

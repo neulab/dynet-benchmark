@@ -68,3 +68,16 @@ for trial in 1; do
     fi
   done
 done
+
+# Run treenn
+mkdir -p log/treenn
+for trial in 1; do
+  wembsize=128
+  hidsize=128
+  for f in dynet-cpp dynet-py chainer; do
+    runcmd $f treenn "$wembsize $hidsize $mlpsize 0 $TIMEOUT" log/treenn/$f-ws$wembsize-hs$hidsize-su0-t$trial.log
+    if [[ $f == dynet* ]]; then
+      runcmd $f treenn "$wembsize $hidsize $mlpsize 1 $TIMEOUT" log/treenn/$f-ws$wembsize-hs$hidsize-su1-t$trial.log
+    fi
+  done
+done
