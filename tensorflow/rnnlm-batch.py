@@ -72,7 +72,6 @@ cell = tf.nn.rnn_cell.MultiRNNCell([cell] * NUM_LAYERS, state_is_tuple=True)
 
 # input sentence placeholder
 x_input = tf.placeholder(tf.int32, [args.MB_SIZE, max_length], name="x_input")
-mask_input = tf.placeholder(tf.float32, [args.MB_SIZE, max_length], name="mask_input")
 x_lens = tf.placeholder(tf.int32, [args.MB_SIZE], name='x_lens')
 
 x_embs = tf.squeeze(tf.nn.embedding_lookup(WORDS_LOOKUP, x_input))
@@ -109,9 +108,9 @@ for ITER in xrange(10):
 
       for tid in test_order:
         t_examples = test[tid:tid+args.MB_SIZE]
+        x_lens_in = [len(examples) for example in examples]
         x_in = [pad(example, S, max_length) for example in t_examples]
-        masks = [[1.0] * len(example) + [0.0] * (max_length - len(example)) for example in examples]
-        test_loss = sess.run(loss, feed_dict={x_input: x_in, mask_input: masks})
+        test_loss = sess.run(loss, feed_dict={x_input: x_in, x_lens: x_lens_in})
         tot_words = sum([len(t_example) for t_example in t_examples])
         test_losses.append(test_loss * tot_words)
         test_words += tot_words
@@ -125,8 +124,7 @@ for ITER in xrange(10):
     examples = train[sid : sid+args.MB_SIZE]
     x_lens_in = [len(examples) for example in examples]
     x_in = [pad(example, S, max_length) for example in examples]
-    masks = [[1.0] * len(example) + [0.0] * (max_length - len(example)) for example in examples]
-    train_loss, _ = sess.run([loss, optimizer], feed_dict={x_input: x_in, mask_input: masks, x_lens:x_lens_in})
+    train_loss, _ = sess.run([loss, optimizer], feed_dict={x_input: x_in, x_lens: x_lens_in})
     tot_words = sum([len(example) for example in examples])
     train_losses.append(train_loss * tot_words)
     train_words += tot_words
