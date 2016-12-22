@@ -54,10 +54,11 @@ else:
   train_order = range(len(train))
   test_order = range(len(test))
 
-max_length = len(max(train, key=len))
-assert len(max(test, key=len)) < max_length, 'There should be no test sentences longer than the longest training sentence (%d words)' % max_length
+#max_length = len(max(train, key=len))
+#assert len(max(test, key=len)) < max_length, 'There should be no test sentences longer than the longest training sentence (%d words)' % max_length
 
 def pad(seq, element, length):
+  assert len(seq) <= length
   r = seq + [element] * (length - len(seq))
   assert len(r) == length
   return r 
@@ -71,11 +72,11 @@ cell = tf.nn.rnn_cell.BasicLSTMCell(args.HIDDEN_SIZE)
 cell = tf.nn.rnn_cell.MultiRNNCell([cell] * NUM_LAYERS, state_is_tuple=True)
 
 # input sentence placeholder
-x_input = tf.placeholder(tf.int32, [None, max_length], name="x_input")
+x_input = tf.placeholder(tf.int32, [None, None], name="x_input")
 x_lens = tf.placeholder(tf.int32, [None], name='x_lens')
 
 x_embs = tf.squeeze(tf.nn.embedding_lookup(WORDS_LOOKUP, x_input))
-x_embs.set_shape([None, max_length, args.EMBED_SIZE])
+x_embs.set_shape([None, None, args.EMBED_SIZE])
 cell_out = tf.nn.rnn_cell.OutputProjectionWrapper(cell, nwords)
 outputs, _ = tf.nn.dynamic_rnn(cell_out, x_embs, sequence_length=x_lens, dtype=tf.float32)
 losses = tf.nn.sparse_softmax_cross_entropy_with_logits(outputs, x_input)
@@ -109,8 +110,8 @@ for ITER in xrange(10):
 
       for tid in test_order:
         t_examples = test[tid:tid+args.MB_SIZE]
-        x_lens_in = [len(examples) for example in examples]
-        x_in = [pad(example, S, max_length) for example in t_examples]
+        x_lens_in = [len(example) for example in examples]
+        x_in = [pad(example, S, max(x_lens_in)) for example in t_examples]
         test_loss = sess.run(loss, feed_dict={x_input: x_in, x_lens: x_lens_in})
         tot_words = sum([len(t_example) for t_example in t_examples])
         test_losses.append(test_loss * tot_words)
@@ -123,8 +124,8 @@ for ITER in xrange(10):
 
     # train on sent
     examples = train[sid : sid+args.MB_SIZE]
-    x_lens_in = [len(examples) for example in examples]
-    x_in = [pad(example, S, max_length) for example in examples]
+    x_lens_in = [len(example) for example in examples]
+    x_in = [pad(example, S, max(x_lens_in)) for example in examples]
     train_loss, _ = sess.run([loss, optimizer], feed_dict={x_input: x_in, x_lens: x_lens_in})
     tot_words = sum([len(example) for example in examples])
     train_losses.append(train_loss * tot_words)
