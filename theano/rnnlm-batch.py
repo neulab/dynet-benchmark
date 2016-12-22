@@ -66,7 +66,7 @@ def pad(seq):
 
 
 def build_graph():
-    # print 'build graph..'
+    print('build graph..')
     # Lookup parameters for word embeddings
     embedding_table = Embedding(vocab_size, args.EMBED_SIZE)
 
@@ -122,14 +122,14 @@ train_order = [x * args.MB_SIZE for x in range(int((len(train) - 1) / args.MB_SI
 test_order = [x * args.MB_SIZE for x in range(int((len(test) - 1) / args.MB_SIZE + 1))]
 
 # Perform training
-print ("startup time: %r" % (time.time() - start))
+print("startup time: %r" % (time.time() - start))
 start = time.time()
 for ITER in xrange(10):
     random.shuffle(train_order)
     for sid in train_order:
         i += 1
         if i % int(500 / args.MB_SIZE) == 0:
-            print this_loss / this_words
+            print(this_loss / this_words)
             all_tagged += this_words
             this_loss = this_words = 0
         if i % int(10000 / args.MB_SIZE) == 0:
@@ -145,7 +145,7 @@ for ITER in xrange(10):
                 mb_words = sum(len(s) for s in batch_sents)
                 dev_words += mb_words
 
-            print ("nll=%.4f, ppl=%.4f, words=%r, time=%.4f, word_per_sec=%.4f" % (
+            print("nll=%.4f, ppl=%.4f, words=%r, time=%.4f, word_per_sec=%.4f" % (
                 dev_loss / dev_words, np.exp(dev_loss / dev_words), dev_words, all_time, all_tagged / all_time))
             if all_time > args.TIMEOUT:
                 sys.exit(0)
@@ -162,4 +162,4 @@ for ITER in xrange(10):
         mb_words = sum(len(s) for s in batch_sents)
         this_words += mb_words
 
-    print "epoch %r finished" % ITER
+    print("epoch %r finished" % ITER)
