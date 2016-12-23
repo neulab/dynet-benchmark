@@ -15,6 +15,7 @@ import dynet as dy
 parser = argparse.ArgumentParser()
 parser.add_argument("--dynet_seed", default=0, type=int)
 parser.add_argument("--dynet_mem", default=512, type=int)
+parser.add_argument("--dynet_gpus", default=0, type=int)
 parser.add_argument('WEMBED_SIZE', type=int, help='embedding size')
 parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
 parser.add_argument('SPARSE', type=int, help='sparse update 0/1')
@@ -173,6 +174,6 @@ for ITER in range(50):
         pred = i2l[np.argmax((W*h).npvalue())]
         if pred == tree.label: good += 1
         else: bad += 1
-    print ("sent_acc=%.4f, time=%.4f, sent_per_sec=%.4f" % (good/(good+bad), all_time, sents/all_time))
+    print ("acc=%.4f, time=%.4f, sent_per_sec=%.4f" % (good/(good+bad), all_time, sents/all_time))
     if all_time > args.TIMEOUT:
         sys.exit(0)

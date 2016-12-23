@@ -4,33 +4,45 @@ CUDA_PATH=/usr/local/cuda-7.5
 EIGEN_PATH=${HOME}/usr/local/eigen
 DYNET_PATH=${HOME}/work/dynet
 
-# *** CPU
-DYNET_LIB=-ldynet
-# *** GPU
-# DYNET_LIB=-lgdynet -ldynetcuda -L${CUDA_PATH}/lib64 -lcublas -lcudart
+DYNET_LIB_CPU=-ldynet
+DYNET_LIB_GPU=-lgdynet -ldynetcuda -L${CUDA_PATH}/lib64 -lcublas -lcudart
 
 # *** Mac or linux
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
-  CXX_FLAGS=-std=c++11 -I${EIGEN_PATH} -I${DYNET_PATH} -L${DYNET_PATH}/build/dynet -lc++ ${DYNET_LIB} -Ofast
+  CXX_FLAGS=-std=c++11 -I${EIGEN_PATH} -I${DYNET_PATH} -L${DYNET_PATH}/build/dynet -lc++ -Ofast
 else
   CC=g++
-  CXX_FLAGS=-std=c++11 -I${EIGEN_PATH} -I${DYNET_PATH} -L${DYNET_PATH}/build/dynet -DBOOST_REGEX -lboost_regex ${DYNET_LIB} -Ofast
+  CXX_FLAGS=-std=c++11 -I${EIGEN_PATH} -I${DYNET_PATH} -L${DYNET_PATH}/build/dynet -DBOOST_REGEX -lboost_regex -Ofast
 endif
 
 all: rnnlm-batch treenn bilstm-tagger bilstm-tagger-withchar
 
+gpu: rnnlm-batch-gpu treenn-gpu bilstm-tagger-gpu bilstm-tagger-withchar-gpu
+
 clean:
-	rm rnnlm-batch treenn bilstm-tagger bilstm-tagger-withchar
+	rm -f rnnlm-batch treenn bilstm-tagger bilstm-tagger-withchar rnnlm-batch-gpu treenn-gpu bilstm-tagger-gpu bilstm-tagger-withchar-gpu
 
 rnnlm-batch: rnnlm-batch.cc
-	${CC} -o rnnlm-batch rnnlm-batch.cc ${CXX_FLAGS}
+	${CC} -o rnnlm-batch rnnlm-batch.cc ${CXX_FLAGS} ${DYNET_LIB_CPU}
 
 treenn: treenn.cc
-	${CC} -o treenn treenn.cc ${CXX_FLAGS}
+	${CC} -o treenn treenn.cc ${CXX_FLAGS} ${DYNET_LIB_CPU}
 
 bilstm-tagger: bilstm-tagger.cc
-	${CC} -o bilstm-tagger bilstm-tagger.cc ${CXX_FLAGS}
+	${CC} -o bilstm-tagger bilstm-tagger.cc ${CXX_FLAGS} ${DYNET_LIB_CPU}
 
 bilstm-tagger-withchar: bilstm-tagger-withchar.cc
-	${CC} -o bilstm-tagger-withchar bilstm-tagger-withchar.cc ${CXX_FLAGS}
+	${CC} -o bilstm-tagger-withchar bilstm-tagger-withchar.cc ${CXX_FLAGS} ${DYNET_LIB_CPU}
+
+rnnlm-batch-gpu: rnnlm-batch.cc
+	${CC} -o rnnlm-batch-gpu rnnlm-batch.cc ${CXX_FLAGS} ${DYNET_LIB_GPU}
+
+treenn-gpu: treenn.cc
+	${CC} -o treenn-gpu treenn.cc ${CXX_FLAGS} ${DYNET_LIB_GPU}
+
+bilstm-tagger-gpu: bilstm-tagger.cc
+	${CC} -o bilstm-tagger-gpu bilstm-tagger.cc ${CXX_FLAGS} ${DYNET_LIB_GPU}
+
+bilstm-tagger-withchar-gpu: bilstm-tagger-withchar.cc
+	${CC} -o bilstm-tagger-withchar-gpu bilstm-tagger-withchar.cc ${CXX_FLAGS} ${DYNET_LIB_GPU}

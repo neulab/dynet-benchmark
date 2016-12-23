@@ -15,14 +15,13 @@ import chainer.links as L
 import chainer.optimizers as O
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--chainer_gpu', type=int, default=-1, help='GPU id')
 parser.add_argument('MB_SIZE', type=int, help='minibatch size')
 parser.add_argument('EMBED_SIZE', type=int, help='embedding size')
 parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
 parser.add_argument('SPARSE', type=int, help='sparse update 0/1')
 parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
 args = parser.parse_args()
-
-GPUID = -1
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
 train_file="data/text/train.txt"
@@ -66,10 +65,10 @@ class RNNLM(Chain):
 
 lm = RNNLM()
 
-if GPUID >= 0:
+if args.chainer_gpu >= 0:
   # use GPU
   from chainer.cuda import cupy as xp, get_device
-  get_device(GPUID).use()
+  get_device(args.chainer_gpu).use()
   lm.to_gpu()
 else:
   # use CPU
