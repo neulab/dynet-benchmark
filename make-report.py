@@ -64,11 +64,11 @@ for line in sys.stdin:
           sys.exit(1)
         if m.group(1) in canonicalize:
           can = canonicalize[m.group(1)]
-          mystats[can] = float(m.group(2))
           val = float(m.group(2))
+          mystats[can] = val
           if can == "accuracy":
-            if task != "rnnlm-batch":
-              val *= 100
+            if task != "rnnlm-batch": val *= 100
+            else: val *= -1
             stats[idtup][can] = max(val, stats[idtup].get(can,-1e10))
           else:
             stats[idtup][can] = val
