@@ -2,14 +2,18 @@
 #include <stdexcept>
 #include <fstream>
 #include <chrono>
-#include <boost/regex.hpp>
+#ifdef BOOST_REGEX
+  #include <boost/regex.hpp>
+  using namespace boost;
+#else
+  #include <regex>
+#endif
 
 #include <dynet/training.h>
 #include <dynet/expr.h>
 #include <dynet/dict.h>
 #include <dynet/lstm.h>
 
-using namespace boost;
 using namespace std;
 using namespace std::chrono;
 using namespace dynet;
@@ -21,7 +25,7 @@ vector<pair<vector<string>, vector<string> > > read(const string & fname) {
   ifstream fh(fname);
   if(!fh) throw std::runtime_error("Could not open file");
   string str;
-  regex re("[ |]"); 
+  regex re("[ |]");
   vector<pair<vector<string>, vector<string> > > sents;
   while(getline(fh, str)) {
     pair<vector<string>,vector<string> > word_tags;
@@ -39,60 +43,61 @@ vector<pair<vector<string>, vector<string> > > read(const string & fname) {
 class BiLSTMTagger {
 public:
 
-  BiLSTMTagger(Model & model, Dict & wv, Dict & tv, unordered_map<string,int> & wc) 
+  BiLSTMTagger(unsigned layers, unsigned wembed_dim, unsigned hidden_dim, unsigned mlp_dim, Model & model, Dict & wv, Dict & tv, unordered_map<string,int> & wc)
                         : wv(wv), tv(tv), wc(wc) {
     unsigned nwords = wv.size();
     unsigned ntags  = tv.size();
-    word_lookup = model.add_lookup_parameters(nwords, {128});
-    p_t1  = model.add_parameters({ntags, 30});
-    
+    word_lookup = model.add_lookup_parameters(nwords, {wembed_dim});
+
     // MLP on top of biLSTM outputs 100 -> 32 -> ntags
-    pH = model.add_parameters({32, 50*2});
-    pO = model.add_parameters({ntags, 32});
-    
+    pH = model.add_parameters({mlp_dim, hidden_dim*2});
+    pO = model.add_parameters({ntags, mlp_dim});
+
     // word-level LSTMs
-    fwdRNN = VanillaLSTMBuilder(1, 128, 50, model); // layers, in-dim, out-dim, model
-    bwdRNN = VanillaLSTMBuilder(1, 128, 50, model);
+    fwdRNN = VanillaLSTMBuilder(layers, wembed_dim, hidden_dim, model); // layers, in-dim, out-dim, model
+    bwdRNN = VanillaLSTMBuilder(layers, wembed_dim, hidden_dim, model);
   }
 
   Dict &wv, &tv;
   unordered_map<string,int> & wc;
   LookupParameter word_lookup;
-  Parameter p_t1, pH, pO;
+  Parameter pH, pO;
   VanillaLSTMBuilder fwdRNN, bwdRNN;
 
-  // Do word representation 
+  // Do word representation
   Expression word_rep(ComputationGraph & cg, const string & w) {
-    return lookup(cg, word_lookup, wv.convert(wc[w] > 1 ? w : "<unk>"));
+    return lookup(cg, word_lookup, wv.convert(wc[w] > 5 ? w : "<unk>"));
   }
-  
+
   vector<Expression> build_tagging_graph(ComputationGraph & cg, const vector<string> & words) {
     // parameters -> expressions
     Expression H = parameter(cg, pH);
     Expression O = parameter(cg, pO);
-  
+
     // initialize the RNNs
     fwdRNN.new_graph(cg);
     bwdRNN.new_graph(cg);
-  
+
     // get the word vectors. word_rep(...) returns a 128-dim vector expression for each word.
     vector<Expression> wembs(words.size()), fwds(words.size()), bwds(words.size()), fbwds(words.size());
     for(size_t i = 0; i < words.size(); ++i)
-      wembs[i] = lookup(cg, word_lookup, wv.convert(words[i]));
-  
+      wembs[i] = word_rep(cg, words[i]);
+
     // feed word vectors into biLSTM
     fwdRNN.start_new_sequence();
     for(size_t i = 0; i < wembs.size(); ++i)
       fwds[i] = fwdRNN.add_input(wembs[i]);
     bwdRNN.start_new_sequence();
-    for(size_t i = wembs.size(); i > 0; --i) {
+    for(size_t i = wembs.size(); i > 0; --i)
       bwds[i-1] = bwdRNN.add_input(wembs[i-1]);
-      fbwds[i-1] = O * tanh( H * concatenate({fwds[i-1], bwds[i-1]}) );
-    }
-  
+
+    // Concatenate and MLP
+    for(size_t i = 0; i < wembs.size(); ++i)
+      fbwds[i] = O * tanh( H * concatenate({fwds[i], bwds[i]}) );
+
     return fbwds;
   }
-  
+
   Expression sent_loss(ComputationGraph & cg, vector<string> & words, vector<string> & tags) {
     vector<Expression> exprs = build_tagging_graph(cg, words), errs(words.size());
     for(size_t i = 0; i < tags.size(); ++i)
@@ -115,6 +120,9 @@ public:
 };
 
 int main(int argc, char**argv) {
+
+  time_point<system_clock> start = system_clock::now();
+
   vector<pair<vector<string>, vector<string> > > train = read("data/tags/train.txt");
   vector<pair<vector<string>, vector<string> > > dev = read("data/tags/dev.txt");
   Dict word_voc, tag_voc;
@@ -133,14 +141,30 @@ int main(int argc, char**argv) {
   // DyNet Starts
   dynet::initialize(argc, argv);
   Model model;
-  AdamTrainer trainer(model, 0.001);
-  trainer.sparse_updates_enabled = false;
+  AdamTrainer trainer(model);
+  trainer.clipping_enabled = false;
+
+  if(argc != 6) {
+    cerr << "Usage: " << argv[0] << " WEMBED_SIZE HIDDEN_SIZE MLP_SIZE SPARSE TIMEOUT" << endl;
+    return 1;
+  }
+  int WEMBED_SIZE = atoi(argv[1]);
+  int HIDDEN_SIZE = atoi(argv[2]);
+  int MLP_SIZE = atoi(argv[3]);
+  trainer.sparse_updates_enabled = atoi(argv[4]);
+  int TIMEOUT = atoi(argv[5]);
 
   // Initilaize the tagger
-  BiLSTMTagger tagger(model, word_voc, tag_voc, word_cnt);
+  BiLSTMTagger tagger(1, WEMBED_SIZE, HIDDEN_SIZE, MLP_SIZE, model, word_voc, tag_voc, word_cnt);
+
+  {
+    duration<float> fs = (system_clock::now() - start);
+    float startup_time = duration_cast<milliseconds>(fs).count() / float(1000);
+    cout << "startup time: " << startup_time << endl;
+  }
 
   // Do training
-  time_point<system_clock> start = system_clock::now();
+  start = system_clock::now();
   int i = 0, all_tagged = 0, this_words = 0;
   float this_loss = 0.f, all_time = 0.f;
   for(int iter = 0; iter < 10; iter++) {
@@ -167,14 +191,15 @@ int main(int argc, char**argv) {
           dev_words += sent.second.size();
         }
         cout << "acc=" << dev_good/float(dev_words) << ", time=" << all_time << ", word_per_sec=" << all_tagged/all_time << endl;
-        if(all_time > 3600)
+        if(all_time > TIMEOUT)
           exit(0);
         start = system_clock::now();
       }
 
       ComputationGraph cg;
       Expression loss_exp = tagger.sent_loss(cg, s.first, s.second);
-      this_loss += as_scalar(cg.forward(loss_exp));
+      float my_loss = as_scalar(cg.forward(loss_exp));
+      this_loss += my_loss;
       this_words += s.first.size();
       cg.backward(loss_exp);
       trainer.update();

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import time
 start = time.time()
 
@@ -6,19 +7,20 @@ from itertools import count
 import random
 import math
 import sys
+import argparse
 
 from chainer import Chain, Variable
 import chainer.functions as F
 import chainer.links as L
 import chainer.optimizers as O
 
-if len(sys.argv) != 5:
-  print("Usage: %s MB_SIZE EMBED_SIZE HIDDEN_SIZE TIMEOUT" % sys.argv[0])
-  sys.exit(1)
-MB_SIZE = int(sys.argv[1])
-EMBED_SIZE = int(sys.argv[2])
-HIDDEN_SIZE = int(sys.argv[3])
-TIMEOUT = int(sys.argv[4]) 
+parser = argparse.ArgumentParser()
+parser.add_argument('MB_SIZE', type=int, help='minibatch size')
+parser.add_argument('EMBED_SIZE', type=int, help='embedding size')
+parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
+parser.add_argument('SPARSE', type=int, help='sparse update 0/1')
+parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
+args = parser.parse_args()
 
 GPUID = -1
 
@@ -50,9 +52,9 @@ assert(nwords == len(w2i))
 class RNNLM(Chain):
   def __init__(self):
     super(RNNLM, self).__init__(
-        embed=L.EmbedID(nwords, EMBED_SIZE),
-        rnn=L.LSTM(EMBED_SIZE, HIDDEN_SIZE),
-        h2y=L.Linear(HIDDEN_SIZE, nwords),
+        embed=L.EmbedID(nwords, args.EMBED_SIZE),
+        rnn=L.LSTM(args.EMBED_SIZE, args.HIDDEN_SIZE),
+        h2y=L.Linear(args.HIDDEN_SIZE, nwords),
     )
 
   def reset(self):
@@ -117,41 +119,43 @@ def calc_lm_loss(sents):
 
   return sum(losses), tot_words
 
-i = all_time = all_tagged = this_words = this_loss = 0
 # Sort training sentences in descending order and count minibatches
 train.sort(key=lambda x: -len(x))
 test.sort(key=lambda x: -len(x))
-train_order = [x*MB_SIZE for x in range((len(train)-1)/MB_SIZE + 1)]
-test_order = [x*MB_SIZE for x in range((len(test)-1)/MB_SIZE + 1)]
+train_order = [x*args.MB_SIZE for x in range((len(train)-1)/args.MB_SIZE + 1)]
+test_order = [x*args.MB_SIZE for x in range((len(test)-1)/args.MB_SIZE + 1)]
 # Perform training
 print ("startup time: %r" % (time.time() - start))
 start = time.time()
+i = all_time = dev_time = all_tagged = this_words = this_loss = 0
 for ITER in xrange(10):
   random.shuffle(train_order)
   for sid in train_order:
     i += 1
-    if i % int(500/MB_SIZE) == 0:
+    if i % int(500/args.MB_SIZE) == 0:
       print(this_loss / this_words)
       all_tagged += this_words
       this_loss = this_words = 0
-    if i % int(10000/MB_SIZE) == 0:
-      all_time += time.time() - start
+      all_time = time.time() - start
+    if i % int(10000 / args.MB_SIZE) == 0 or all_time > args.TIMEOUT:
+      dev_start = time.time()
       dev_loss = dev_words = 0
       for sid in test_order:
-        loss_exp, mb_words = calc_lm_loss(test[sid:sid+MB_SIZE])
+        loss_exp, mb_words = calc_lm_loss(test[sid:sid+args.MB_SIZE])
         dev_loss += float(loss_exp.data)
         dev_words += mb_words
-      print("nll=%.4f, ppl=%.4f, words=%r, time=%.4f, word_per_sec=%.4f" % (dev_loss/dev_words, math.exp(dev_loss/dev_words), dev_words, all_time, all_tagged/all_time))
-      if all_time > TIMEOUT:
+      dev_time += time.time() - dev_start 
+      train_time = time.time() - start - dev_time
+      print("nll=%.4f, ppl=%.4f, words=%r, time=%.4f, word_per_sec=%.4f" % (dev_loss/dev_words, math.exp(dev_loss/dev_words), dev_words, train_time, all_tagged/train_time))
+      if all_time > args.TIMEOUT:
         sys.exit(0)
-      start = time.time()
     # train on the minibatch
-    loss_exp, mb_words = calc_lm_loss(train[sid:sid+MB_SIZE])
+    loss_exp, mb_words = calc_lm_loss(train[sid:sid+args.MB_SIZE])
     this_loss += float(loss_exp.data)
     this_words += mb_words
     lm.cleargrads()
     loss_exp.backward()
     trainer.update()
-  print "epoch %r finished" % ITER
+  print ("epoch %r finished" % ITER)
 
 

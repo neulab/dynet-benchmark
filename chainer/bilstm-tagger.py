@@ -1,3 +1,4 @@
+from __future__ import print_function
 import time
 start = time.time()
 
@@ -6,19 +7,20 @@ from itertools import count
 import random
 import time
 import sys
+import argparse
 
 from chainer import Chain, Variable
 import chainer.functions as F
 import chainer.links as L
 import chainer.optimizers as O
 
-if len(sys.argv) != 5:
-  print("Usage: %s WEMBED_SIZE HIDDEN_SIZE MLP_SIZE TIMEOUT" % sys.argv[0])
-  sys.exit(1)
-WEMBED_SIZE = int(sys.argv[1])
-HIDDEN_SIZE = int(sys.argv[2])
-MLP_SIZE = int(sys.argv[3])
-TIMEOUT = int(sys.argv[4]) 
+parser = argparse.ArgumentParser()
+parser.add_argument('WEMBED_SIZE', type=int, help='embedding size')
+parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
+parser.add_argument('MLP_SIZE', type=int, help='embedding size')
+parser.add_argument('SPARSE', type=int, help='sparse update 0/1')
+parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
+args = parser.parse_args()
 
 GPUID = -1
 
@@ -87,13 +89,13 @@ print ("nwords=%r, ntags=%r" % (nwords, ntags))
 class Tagger(Chain):
   def __init__(self):
     super(Tagger, self).__init__(
-        embed=L.EmbedID(nwords, WEMBED_SIZE),
+        embed=L.EmbedID(nwords, args.WEMBED_SIZE),
         # MLP on top of biLSTM outputs 100 -> 32 -> ntags
-        WH=L.Linear(HIDDEN_SIZE*2, MLP_SIZE, nobias=True),
-        WO=L.Linear(MLP_SIZE, ntags, nobias=True),
+        WH=L.Linear(args.HIDDEN_SIZE*2, args.MLP_SIZE, nobias=True),
+        WO=L.Linear(args.MLP_SIZE, ntags, nobias=True),
         # word-level LSTMs
-        fwdRNN=L.LSTM(WEMBED_SIZE, HIDDEN_SIZE),
-        bwdRNN=L.LSTM(WEMBED_SIZE, HIDDEN_SIZE),
+        fwdRNN=L.LSTM(args.WEMBED_SIZE, args.HIDDEN_SIZE),
+        bwdRNN=L.LSTM(args.WEMBED_SIZE, args.HIDDEN_SIZE),
     )
 
   def word_rep(self, w):
@@ -138,17 +140,18 @@ trainer.setup(tagger)
 
 print ("startup time: %r" % (time.time() - start))
 start = time.time()
-i = all_time = all_tagged = this_tagged = this_loss = 0
+i = all_time = dev_time = all_tagged = this_tagged = this_loss = 0
 for ITER in xrange(50):
   random.shuffle(train)
   for s in train:
     i += 1
     if i % 500 == 0:   # print status
-      print this_loss / this_tagged
+      print (this_loss / this_tagged)
       all_tagged += this_tagged
       this_loss = this_tagged = 0
-    if i % 10000 == 0: # eval on dev
-      all_time += time.time() - start
+      all_time = time.time() - start
+    if i % 10000 == 0 or all_time > args.TIMEOUT: # eval on dev
+      dev_start = time.time()
       good_sent = bad_sent = good = bad = 0.0
       for sent in dev:
         words = [w for w, _ in sent]
@@ -162,11 +165,12 @@ for ITER in xrange(50):
           if go == gu:
             good += 1
           else:
-            bad += 1
-      print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), all_time, all_tagged/all_time))
-      if all_time > TIMEOUT:
+            bad += 
+      dev_time += time.time() - dev_start 
+      train_time = time.time() - start - dev_time
+      print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), train_time, all_tagged/train_time))
+      if all_time > args.TIMEOUT:
         sys.exit(0)
-      start = time.time()
     # train on sent
     words = [w for w, _ in s]
     golds = [t for _, t in s]
@@ -178,5 +182,5 @@ for ITER in xrange(50):
     loss_exp.backward()
     trainer.update()
 
-  print "epoch %r finished" % ITER
+  print ("epoch %r finished" % ITER)
   trainer.update_epoch(1.0)
