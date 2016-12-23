@@ -193,7 +193,7 @@ for ITER in range(10):
       train_time = time.time() - start - dev_time
 bad += 1
       print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), train_time, all_tagged/train_time))
-      if train_time > args.TIMEOUT:
+      if all_time > args.TIMEOUT:
         sys.exit(0)
     # train on sent
     words = [w for w,t in s]

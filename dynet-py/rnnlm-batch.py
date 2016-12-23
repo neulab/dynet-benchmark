@@ -134,7 +134,7 @@ for ITER in range(10):
       dev_time += time.time() - dev_start 
       train_time = time.time() - start - dev_time
       print ("nll=%.4f, ppl=%.4f, words=%r, time=%.4f, word_per_sec=%.4f" % (dev_loss/dev_words, math.exp(dev_loss/dev_words), dev_words, train_time, all_tagged/train_time))
-      if train_time > args.TIMEOUT:
+      if all_time > args.TIMEOUT:
         sys.exit(0)
     # train on the minibatch
     loss_exp, mb_words = calc_lm_loss(train[sid:sid+args.MB_SIZE])
