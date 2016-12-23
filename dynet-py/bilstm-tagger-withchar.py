@@ -188,10 +188,9 @@ for ITER in range(10):
         else: bad_sent += 1
         for go,gu in zip(golds,tags):
           if go == gu: good += 1
-          else:
+          else: bad += 1
       dev_time += time.time() - dev_start 
       train_time = time.time() - start - dev_time
-bad += 1
       print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), train_time, all_tagged/train_time))
       if all_time > args.TIMEOUT:
         sys.exit(0)

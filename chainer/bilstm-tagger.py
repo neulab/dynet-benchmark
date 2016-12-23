@@ -165,7 +165,7 @@ for ITER in xrange(50):
           if go == gu:
             good += 1
           else:
-            bad += 
+            bad += 1
       dev_time += time.time() - dev_start 
       train_time = time.time() - start - dev_time
       print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), train_time, all_tagged/train_time))
