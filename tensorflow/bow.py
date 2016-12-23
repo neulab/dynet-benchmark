@@ -27,6 +27,7 @@ dev = list(read_dataset("../data/classes/test.txt"))
 nwords = len(w2i)
 ntags = len(t2i)
 EPOCHS = 100
+GPU = False
 
 print ("nwords=%r, ntags=%r" % (nwords, ntags))
 # Determine max length across train and dev set
@@ -45,43 +46,45 @@ def pad(seq, element, length):
   return r 
 
 def main(_):
+  if GPU:
+    cpu_or_gpu = '/gpu:0'
+  else:
+    cpu_or_gpu = '/cpu:0'
 
-  W_sm = tf.Variable(tf.random_uniform([nwords, ntags], -1.0, 1.0)) # Word weights 
-  b_sm = tf.Variable(tf.random_uniform([ntags], -1.0, 1.0))  # Softmax bias
-  words_in = tf.placeholder(tf.int32, shape=[max_length])
-  tags_in = tf.placeholder(tf.int32, shape=[1])
-  masks_in = tf.placeholder(tf.float32, shape=[max_length])
-  
-  ##Calculate scores
-  embs = [tf.expand_dims(tf.nn.embedding_lookup(W_sm, x), axis=1) for x in tf.unstack(words_in)]
-  embs_concat = tf.concat(1, embs) # embedding matrix
-  score = tf.mul(embs_concat, masks_in) # truncate padded tokens' embeddings
-  score = tf.reduce_sum(score, axis=1)
-  score_out = tf.add(score, b_sm)
+  with tf.device(cpu_or_gpu):
+    W_sm = tf.Variable(tf.random_uniform([nwords, ntags], -1.0, 1.0)) # Word weights 
+    b_sm = tf.Variable(tf.random_uniform([ntags], -1.0, 1.0))  # Softmax bias
+    words_in = tf.placeholder(tf.int32, shape=[max_length])
+    tags_in = tf.placeholder(tf.int32, shape=[1])
+    masks_in = tf.placeholder(tf.float32, shape=[max_length])
+    
+    ##Calculate scores
+    embs = [tf.expand_dims(tf.nn.embedding_lookup(W_sm, x), axis=1) for x in tf.unstack(words_in)]
+    embs_concat = tf.concat(1, embs) # embedding matrix
+    score = tf.mul(embs_concat, masks_in) # truncate padded tokens' embeddings
+    score = tf.reduce_sum(score, axis=1)
+    score_out = tf.add(score, b_sm)
 
-  # Add dims to match cross entropy func definition
-  score_to_loss = tf.expand_dims(score_out, axis=0)
+    # Add dims to match cross entropy func definition
+    score_to_loss = tf.expand_dims(score_out, axis=0)
 
-  # loss_weights = tf.unstack(tf.Variable(tf.ones(1)))
-  # loss_weights = tf.unstack(tf.random_uniform([1], -1.0, 1.0))
+    # Calculate loss 
+    losses = tf.nn.sparse_softmax_cross_entropy_with_logits(score_to_loss, tags_in)
+    # losses = tf.nn.seq2seq.sequence_loss_by_example(tf.unstack(score_to_loss), tf.unstack(tags_in), loss_weights)
+    loss = tf.reduce_mean(losses)
 
-  # Calculate loss 
-  losses = tf.nn.sparse_softmax_cross_entropy_with_logits(score_to_loss, tags_in)
-  # losses = tf.nn.seq2seq.sequence_loss_by_example(tf.unstack(score_to_loss), tf.unstack(tags_in), loss_weights)
-  loss = tf.reduce_mean(losses)
+    optimizer = tf.train.AdamOptimizer().minimize(loss)
 
-  optimizer = tf.train.AdamOptimizer().minimize(loss)
+    print >>sys.stderr, 'Graph created.' 
 
-  print >>sys.stderr, 'Graph created.' 
   sess = tf.InteractiveSession()
   tf.global_variables_initializer().run()
   print >>sys.stderr, 'Session initialized.'
 
   print ("startup time: %r" % (time.time() - start))
   for ITER in range(EPOCHS):
-    
     # Perform training
-    # random.shuffle(train)
+    random.shuffle(train)
     train_loss = 0.0
     start = time.time()
     for i, (words, tag) in enumerate(train):
@@ -89,10 +92,6 @@ def main(_):
       mask = [1.0] * len(words) + [0.0] * (max_length - len(words))
       _, cur_loss, _ = sess.run([score_out, loss, optimizer], feed_dict={words_in: padded_words, tags_in: [tag], masks_in: mask})
       train_loss += cur_loss
-
-      # print(b_sm.as_array())
-      # if i > 5:
-      #     sys.exit(0)
     print("iter %r: train loss/sent=%.4f, time=%.2fs" % (ITER, train_loss/len(train), time.time()-start))
     
     # Perform testing
