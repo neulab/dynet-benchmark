@@ -15,6 +15,7 @@ allstats = defaultdict(lambda: [])
 fnameregex = re.compile(r"log/([a-z-]+?)(-gpu|)/(dynet-py|dynet-cpp|chainer|theano|tensorflow)-(.*?)-t([123]).log:(.*)")
 startregex = re.compile(r"startup time: (.*)")
 eqregex = re.compile(r"(.*)=(.*)")
+commentregex = re.compile(r"^ *((#|//).*)?")
 
 ##### Various data
 canonicalize = {
@@ -40,7 +41,7 @@ prettyname = {
   "theano":    "Theano"
 }
 
-##### Load data
+##### Load from log files
 for line in sys.stdin:
   m = re.search(fnameregex, line.strip())
   if m:
@@ -85,7 +86,9 @@ def getmaxstat(task, device, toolkit, setting, stat):
       my_stats.append(stats[my_id][stat])
   return "%.2f" % max(my_stats) if len(my_stats) else "TODO"
 
-###### First table: CPU/GPU speeds for all toolkits/tasks
+###### First section: toolkit comparison
+
+# CPU/GPU speeds for all toolkits/tasks
 tasks = [
   ("RNNLM (MB=1) ", "rnnlm-batch", "ms01-es128-hs256-sp0"),
   ("RNNLM (MB=16)", "rnnlm-batch", "ms16-es128-hs256-sp0"),
@@ -113,7 +116,42 @@ def make_speed_table(device):
 make_speed_table("cpu")
 make_speed_table("gpu")
 
-###### Second table: effect of sparse update
+# Code complexities
+def get_code_complexity(toolkit, task):
+  chars = 0
+  if (toolkit, task) in taskna:
+    return "\\multicolumn{1}{%s}{-}" % ("c" if toolkit == "tensorflow" else "c|")
+  with open("%s/%s.%s" % (toolkit, task, "cc" if toolkit == "dynet-cpp" else "py"), "r") as f:
+    for line in f:
+      line = re.sub(commentregex, "", line.strip())
+      chars += len(line)
+  return str(chars)
+
+tasks = [
+  ("RNNLM", "rnnlm-batch"),
+  ("BiLSTM Tagger", "bilstm-tagger"),
+  ("BiLSTM Tagger w/Char", "bilstm-tagger-withchar"),
+  ("TreeLSTM", "treenn"),
+]
+print("\\begin{table}")
+print("\\begin{tabular}{c|r|r|r|r|r}")
+print(" & "+" & ".join([prettyname[x] for x in toolkits])+" \\\\ \hline")
+for name, task in tasks:
+  cols = [name]
+  for i, toolkit in enumerate(toolkits):
+    cols.append(get_code_complexity(toolkit, task))
+  print(" & ".join(cols)+" \\\\")
+print("\\end{tabular}")
+print("\\caption{Number of non-comment characters in the implementation of each toolkit.}")
+print("\\label{tab:complexity}")
+print("\\end{table}")
+print("")
+
+
+###### Second section: effect of minibatching and net size
+
+
+###### Third section: effect of sparse update
 tasks = [
   ("RNNLM (MB=1) ", "rnnlm-batch", "ms01-es128-hs256-sp"),
   ("RNNLM (MB=16)", "rnnlm-batch", "ms16-es128-hs256-sp"),
