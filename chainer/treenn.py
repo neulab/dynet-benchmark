@@ -207,6 +207,6 @@ for ITER in range(50):
       good += 1
     else:
       bad += 1
-  print("sent_acc=%.4f, time=%.4f, sent_per_sec=%.4f" % (good/(good+bad), all_time, sents/all_time))
+  print("acc=%.4f, time=%.4f, sent_per_sec=%.4f" % (good/(good+bad), all_time, sents/all_time))
   if all_time > args.TIMEOUT:
     sys.exit(0)
