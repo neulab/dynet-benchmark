@@ -14,6 +14,7 @@ import chainer.links as L
 import chainer.optimizers as O
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--chainer_gpu', type=int, default=-1, help='GPU id')
 parser.add_argument('CEMBED_SIZE', type=int, help='char embedding size')
 parser.add_argument('WEMBED_SIZE', type=int, help='embedding size')
 parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
@@ -22,12 +23,10 @@ parser.add_argument('SPARSE', type=int, help='sparse update 0/1')
 parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
 args = parser.parse_args()
 
-GPUID = -1
-
-if GPUID >= 0:
+if args.chainer_gpu >= 0:
   # use GPU
   from chainer.cuda import cupy as xp, get_device
-  get_device(GPUID).use()
+  get_device(args.chainer_gpu).use()
 else:
   # use CPU
   import numpy as xp

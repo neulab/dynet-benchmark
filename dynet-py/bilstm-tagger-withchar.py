@@ -12,6 +12,7 @@ import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--dynet_seed", default=0, type=int)
+parser.add_argument("--dynet_gpus", default=0, type=int)
 parser.add_argument("--dynet_mem", default=512, type=int)
 parser.add_argument('CEMBED_SIZE', type=int, help='char embedding size')
 parser.add_argument('WEMBED_SIZE', type=int, help='embedding size')
