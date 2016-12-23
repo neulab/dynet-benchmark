@@ -244,7 +244,7 @@ int main(int argc, char**argv) {
       size_t max_id = std::distance(scores.begin(), std::max_element(scores.begin(), scores.end()));
       (nonterm_voc.convert(max_id) == tree->label ? good : bad)++;
     }
-    cout << "accuracy=" << good/float(good+bad) << ", time=" << all_time << ", sent_per_sec=" << i/all_time << endl;
+    cout << "acc=" << good/float(good+bad) << ", time=" << all_time << ", sent_per_sec=" << i/all_time << endl;
     if(all_time > TIMEOUT)
       exit(0);
   }
