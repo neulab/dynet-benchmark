@@ -75,14 +75,21 @@ for trial in 1 2 3; do
   done
 
   # Run rnnlm-batch
-  for embsize in 64 128; do
+  for embsize in 64 128 256; do
     hidsize=$(($embsize*2))
-    for mbsize in 16 08 04 02 01; do
+    for mbsize in 64 32 16 08 04 02 01; do
       for f in dynet-cpp dynet-py theano chainer; do
         runcmd $f rnnlm-batch "$mbsize $embsize $hidsize 0 $TIMEOUT" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
-        if [[ $f == dynet* ]]; then
-          runcmd $f rnnlm-batch "$mbsize $embsize $hidsize 1 $TIMEOUT" $f-ms$mbsize-es$embsize-hs$hidsize-sp1-t$trial
-        fi
+      done
+    done
+  done
+
+  # run sparse rnnlm-batch on a subset
+  for embsize in 128; do
+    hidsize=$(($embsize*2))
+    for mbsize in 16 01; do
+      for f in dynet-cpp dynet-py; do
+        runcmd $f rnnlm-batch "$mbsize $embsize $hidsize 1 $TIMEOUT" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
       done
     done
   done
