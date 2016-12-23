@@ -15,15 +15,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument('MB_SIZE', type=int, help='minibatch size')
 parser.add_argument('EMBED_SIZE', type=int, help='embedding size')
 parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
-parser.add_argument('SPARSE', type=int, help='sparse update 0/1')
+parser.add_argument('SPARSE', type=int, help='sparse update 0/1')  # sparse updates by default in tensorflow
 parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
 args = parser.parse_args()
 
 NUM_LAYERS = 1
+GPU = False
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
-train_file='data/text/train.txt'
-test_file='data/text/dev.txt'
+train_file='../data/text/train.txt'
+test_file='../data/text/dev.txt'
 w2i = defaultdict(count(0).next)
 eos = '<s>'
 
@@ -64,32 +65,40 @@ def pad(seq, element, length):
   assert len(r) == length
   return r 
 
-# Lookup parameters for word embeddings
-WORDS_LOOKUP = tf.Variable(tf.random_uniform([nwords, 1, args.EMBED_SIZE], -1.0, 1.0))
+if GPU:
+  cpu_or_gpu = '/gpu:0'
+else:
+  cpu_or_gpu = '/cpu:0'
 
-# Word-level LSTM (configurable number of layers, input is unspecified,
-# but will be equal to the embedding dim, output=128)
-cell = tf.nn.rnn_cell.BasicLSTMCell(args.HIDDEN_SIZE) 
-cell = tf.nn.rnn_cell.MultiRNNCell([cell] * NUM_LAYERS, state_is_tuple=True)
+with tf.device(cpu_or_gpu):
+  # Lookup parameters for word embeddings
+  WORDS_LOOKUP = tf.Variable(tf.random_uniform([nwords, 1, args.EMBED_SIZE], -1.0, 1.0))
 
-# input sentence placeholder
-x_input = tf.placeholder(tf.int32, [None, None], name="x_input")
-x_lens = tf.placeholder(tf.int32, [None], name='x_lens')
+  # Word-level LSTM (configurable number of layers, input is unspecified,
+  # but will be equal to the embedding dim, output=128)
+  cell = tf.nn.rnn_cell.BasicLSTMCell(args.HIDDEN_SIZE) 
+  cell = tf.nn.rnn_cell.MultiRNNCell([cell] * NUM_LAYERS, state_is_tuple=True)
 
-x_embs = tf.squeeze(tf.nn.embedding_lookup(WORDS_LOOKUP, x_input))
-x_embs.set_shape([None, None, args.EMBED_SIZE])
-cell_out = tf.nn.rnn_cell.OutputProjectionWrapper(cell, nwords)
-outputs, _ = tf.nn.dynamic_rnn(cell_out, x_embs, sequence_length=x_lens, dtype=tf.float32)
-losses = tf.nn.sparse_softmax_cross_entropy_with_logits(outputs, x_input)
-loss = tf.reduce_mean(losses)
+  # input sentence placeholder
+  x_input = tf.placeholder(tf.int32, [None, None], name="x_input")
+  x_lens = tf.placeholder(tf.int32, [None], name='x_lens')
 
-optimizer = tf.train.AdamOptimizer().minimize(loss)
+  x_embs = tf.squeeze(tf.nn.embedding_lookup(WORDS_LOOKUP, x_input))
+  x_embs.set_shape([None, None, args.EMBED_SIZE])
+  cell_out = tf.nn.rnn_cell.OutputProjectionWrapper(cell, nwords)
+  outputs, _ = tf.nn.dynamic_rnn(cell_out, x_embs, sequence_length=x_lens, dtype=tf.float32)
 
-print >>sys.stderr, 'Graph created.' 
+  losses = tf.nn.sparse_softmax_cross_entropy_with_logits(outputs, x_input)
+  loss = tf.reduce_mean(losses)
+  optimizer = tf.train.AdamOptimizer().minimize(loss)
+
+  # print >>sys.stderr, 'Graph created.' 
+  print('Graph created.' , file=sys.stderr)
+
 sess = tf.InteractiveSession(config=tf.ConfigProto(intra_op_parallelism_threads=1))
 tf.global_variables_initializer().run()
-print >>sys.stderr, 'Session initialized.' 
-
+print('Session initialized.' , file=sys.stderr)
+# print >>sys.stderr, 'Session initialized.' 
 train_losses = [] 
 print ("startup time: %r" % (time.time() - start))
 start = time.time()
