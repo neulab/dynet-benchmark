@@ -23,8 +23,8 @@ NUM_LAYERS = 1
 GPU = False
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
-train_file='/data/tags/train.txt'
-test_file='/data/tags/dev.txt'
+train_file='data/tags/train.txt'
+test_file='data/tags/dev.txt'
 
 class Vocab:
     def __init__(self, w2i=None):
@@ -125,7 +125,7 @@ with tf.device(cpu_or_gpu):
 
   ## calculate the loss
   losses = tf.nn.sparse_softmax_cross_entropy_with_logits(mlp_output, golds)
-  loss = tf.reduce_mean(losses)
+  loss = tf.reduce_sum(losses)
 
   optimizer = tf.train.AdamOptimizer().minimize(loss)
   print('Graph created.' , file=sys.stderr)
