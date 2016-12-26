@@ -24,8 +24,8 @@ NUM_LAYERS = 1
 GPU = False
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
-train_file='../data/text/train.txt'
-test_file='../data/text/dev.txt'
+train_file='data/text/train.txt'
+test_file='data/text/dev.txt'
 w2i = defaultdict(count(0).next)
 eos = '<s>'
 
@@ -93,22 +93,20 @@ with tf.device(cpu_or_gpu):
   loss = tf.reduce_mean(losses)
   optimizer = tf.train.AdamOptimizer().minimize(loss)
 
-  # print >>sys.stderr, 'Graph created.' 
   print('Graph created.' , file=sys.stderr)
 
 sess = tf.InteractiveSession(config=tf.ConfigProto(intra_op_parallelism_threads=1))
 tf.global_variables_initializer().run()
 print('Session initialized.' , file=sys.stderr)
-# print >>sys.stderr, 'Session initialized.' 
 train_losses = [] 
-print ("startup time: %r" % (time.time() - start))
+print("startup time: %r" % (time.time() - start))
 start = time.time()
 i = all_time = dev_time = all_tagged = train_words = 0
 for ITER in range(10):
   random.shuffle(train_order)
   for i,sid in enumerate(train_order, start=1):
     if i % int(500/args.MB_SIZE) == 0:
-      print "Updates so far:", (i-1), "Loss:" , sum(train_losses) / train_words
+      print("Updates so far:", (i-1), "Loss:" , sum(train_losses) / train_words)
       all_tagged += train_words
       train_losses = []
       train_words = 0
@@ -118,7 +116,7 @@ for ITER in range(10):
       test_losses = []
       test_words = 0
       all_time += time.time() - start
-      print "Testing on dev set..."
+      print("Testing on dev set...")
 
       for tid in test_order:
         t_examples = test[tid:tid+args.MB_SIZE]
@@ -131,7 +129,7 @@ for ITER in range(10):
       nll = sum(test_losses) / test_words
       dev_time += time.time() - dev_start 
       train_time = time.time() - start - dev_time
-      print >>sys.stderr, 'nll=%.4f, ppl=%.4f, time=%.4f, words_per_sec=%.4f' % (nll, math.exp(nll), train_time, all_tagged/train_time)
+      print('nll=%.4f, ppl=%.4f, time=%.4f, words_per_sec=%.4f' % (nll, math.exp(nll), train_time, all_tagged/train_time), file=sys.stderr)
       if all_time > args.TIMEOUT:
         sys.exit(0)
 

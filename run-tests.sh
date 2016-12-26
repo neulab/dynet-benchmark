@@ -15,8 +15,10 @@ if [[ $# == 1 ]]; then
   export THEANO_FLAGS="device=gpu0,floatX=float32"
   DYFLAGS="$DYFLAGS --dynet_gpus 1"
   GPUSUF="-gpu"
+  CGPU=0
 else
   export THEANO_FLAGS="device=cpu,floatX=float32"
+  CGPU=-1
 fi
 
 TIMEOUT=600
@@ -34,7 +36,7 @@ runcmd() {
     elif [[ $1 == "dynet-py" ]]; then
       mycmd="$PYTHON -u $1/$2.py $DYFLAGS"
     elif [[ $1 == "chainer" ]]; then
-      mycmd="$PYTHON -u $1/$2.py --chainer_gpu 0"
+      mycmd="$PYTHON -u $1/$2.py --chainer_gpu $CGPU"
     else
       mycmd="$PYTHON -u $1/$2.py"
     fi
