@@ -1,19 +1,19 @@
 #!/bin/bash
 
 export ANACONDA_PATH=$HOME/usr/local/anaconda3/envs/benchmark2
-export CUDA_PATH=/usr/local/cuda-7.5
+export CUDA_PATH=/usr/local/cuda
 export DYNET_PATH=$HOME/work/dynet
 export LD_LIBRARY_PATH=$DYNET_PATH/build/dynet:$ANACONDA_PATH/lib:$CUDA_PATH/lib64
 export LIBRARY_PATH=$DYNET_PATH/build/dynet:$ANACONDA_PATH/lib:$CUDA_PATH/lib64
 export PYTHONPATH=$DYNET_PATH/build/python
 PYTHON=python
 
-DYFLAGS="--dynet_mem 4096"
+DYFLAGS="--dynet-mem 4096"
 GPUSUF=
 if [[ $# == 1 ]]; then
   export CUDA_VISIBLE_DEVICES=$1
   export THEANO_FLAGS="device=gpu0,floatX=float32"
-  DYFLAGS="$DYFLAGS --dynet_gpus 1"
+  DYFLAGS="$DYFLAGS --dynet-gpus 1"
   GPUSUF="-gpu"
   CGPU=0
 else
@@ -22,7 +22,7 @@ else
 fi
 
 TIMEOUT=600
-LONGTIMEOUT=3600
+LONGTIMEOUT=600
 
 runcmd() {
   LFILE=log/$2$GPUSUF/$4.log
@@ -84,7 +84,8 @@ for trial in 1 2 3; do
   # Run rnnlm-batch
   for embsize in 64 128 256; do
     hidsize=$(($embsize*2))
-    for mbsize in 64 32 16 08 04 02 01; do
+    # for mbsize in 64 32 16 08 04 02 01; do
+    for mbsize in 64 16 04 01; do
       for f in dynet-cpp dynet-py theano chainer tensorflow; do
         runcmd $f rnnlm-batch "$mbsize $embsize $hidsize 0" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
       done

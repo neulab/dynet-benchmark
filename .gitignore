@@ -2,8 +2,11 @@
 *.dSYM
 *.pyc
 log
-dynet-cpp/rnnlm
 dynet-cpp/rnnlm-batch
 dynet-cpp/treenn
 dynet-cpp/bilstm-tagger
 dynet-cpp/bilstm-tagger-withchar
+dynet-cpp/rnnlm-batch-gpu
+dynet-cpp/treenn-gpu
+dynet-cpp/bilstm-tagger-gpu
+dynet-cpp/bilstm-tagger-withchar-gpu
