@@ -23,8 +23,8 @@ NUM_LAYERS = 1
 GPU = False
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
-train_file='../data/tags/train.txt'
-test_file='../data/tags/dev.txt'
+train_file='/data/tags/train.txt'
+test_file='/data/tags/dev.txt'
 
 class Vocab:
     def __init__(self, w2i=None):
@@ -138,7 +138,7 @@ start = time.time()
 i = all_time = dev_time = all_tagged = this_tagged = this_loss = 0
 
 for ITER in range(50):
-  # random.shuffle(train)
+  random.shuffle(train)
   for s in train:
     i += 1
     if i % 500 == 0:   # print status
