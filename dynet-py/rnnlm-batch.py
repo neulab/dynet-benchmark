@@ -97,7 +97,7 @@ def calc_lm_loss(sents):
     # mask the loss if at least one sentence is shorter
     if mask[-1] != 1:
       mask_expr = dy.inputVector(mask)
-      mask_expr = dy.reshape(mask_expr, (1,), args.MB_SIZE)
+      mask_expr = dy.reshape(mask_expr, (1,), len(sent))
       loss = loss * mask_expr
     losses.append(loss)
     # update the state of the RNN    

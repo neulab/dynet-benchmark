@@ -80,7 +80,7 @@ struct RNNLanguageModel {
       Expression score = affine_transform({b_exp, W_exp, s});
       Expression loss = pickneglogsoftmax(score, wids);
       if(0.f == *masks.rbegin())
-        loss = cmult(loss, input(cg, Dim({1}, mb_size), masks));
+        loss = cmult(loss, input(cg, Dim({1}, tot_sents), masks));
       losses.push_back(loss);
       // update the state of the RNN
       s = builder.add_input(lookup(cg, p_c, wids));
