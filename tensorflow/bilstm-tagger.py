@@ -23,8 +23,8 @@ NUM_LAYERS = 1
 GPU = False
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
-train_file='data/tags/train.txt'
-test_file='data/tags/dev.txt'
+train_file='../data/tags/train.txt'
+test_file='../data/tags/dev.txt'
 
 class Vocab:
     def __init__(self, w2i=None):
@@ -97,10 +97,8 @@ with tf.device(cpu_or_gpu):
   words_in = tf.placeholder(tf.int32, [None], name="input_sentence")
   golds = tf.placeholder(tf.int32, [None], name="golds")
   sent_len = tf.placeholder(tf.int32, shape=(1,), name="sent_len")
-  arange = tf.placeholder(tf.int32, shape=[None], name="arange")
 
-  words_in = tf.gather(words_in, arange)
-  wembs = tf.squeeze(tf.nn.embedding_lookup(WORDS_LOOKUP, words_in))
+  wembs = tf.squeeze(tf.nn.embedding_lookup(WORDS_LOOKUP, words_in), axis=1)
   wembs = tf.expand_dims(wembs, axis=0)
   wembs.set_shape([1, words_in.get_shape()[0], args.WEMBED_SIZE])
 
@@ -117,8 +115,9 @@ with tf.device(cpu_or_gpu):
                                                 inputs=wembs)
 
   output_fw, output_bw = outputs
-  output_concat = tf.squeeze(tf.concat(2, [output_fw, output_bw]))  # (input_length, 2 * HIDDEN_SIZE)
+  output_concat = tf.squeeze(tf.concat(2, [output_fw, output_bw]), axis=0)  # (input_length, 2 * HIDDEN_SIZE)
   output_concat.set_shape([None, 2*args.HIDDEN_SIZE])
+
   # Pass to MLP
   mlp_activation = tf.tanh(tf.matmul(output_concat, mlp_hidden))
   mlp_output = tf.matmul(mlp_activation, mlp_out)
@@ -133,14 +132,13 @@ with tf.device(cpu_or_gpu):
 sess = tf.InteractiveSession()
 tf.global_variables_initializer().run()
 print('Session initialized.' , file=sys.stderr)
-# print >>sys.stderr, 'Session initialized.' 
 train_losses = [] 
 print ("startup time: %r" % (time.time() - start))
 start = time.time()
 i = all_time = dev_time = all_tagged = this_tagged = this_loss = 0
 
 for ITER in range(50):
-  random.shuffle(train)
+  # random.shuffle(train)
   for s in train:
     i += 1
     if i % 500 == 0:   # print status
@@ -154,8 +152,7 @@ for ITER in range(50):
       for sent in test:
         x_in = [vw.w2i[w] if wc[w]>5 else UNK for w,_ in sent]
         golds_in = [vt.w2i[t] for _,t in sent]
-        log_probs = sess.run(mlp_output, feed_dict={words_in: x_in, golds: golds_in, 
-                                                    sent_len: [len(sent)], arange: range(len(sent))})
+        log_probs = sess.run(mlp_output, feed_dict={words_in: x_in, golds: golds_in, sent_len: [len(sent)]})
         tags = get_tags(log_probs)
         if tags == golds_in: good_sent += 1
         else: bad_sent += 1
@@ -170,8 +167,7 @@ for ITER in range(50):
     # train on sent         
     x_in = [vw.w2i[w] if wc[w]>5 else UNK for w,_ in s]
     golds_in = [vt.w2i[t] for _,t in s]
-    train_loss, _ = sess.run([loss, optimizer], feed_dict={words_in: x_in, golds: golds_in, 
-                                                           sent_len: [len(s)], arange: range(len(s))})
+    train_loss, _ = sess.run([loss, optimizer], feed_dict={words_in: x_in, golds: golds_in, sent_len: [len(s)]})
     this_loss += train_loss
     this_tagged += len(golds_in)
   print("epoch %r finished" % ITER)
