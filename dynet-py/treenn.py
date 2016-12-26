@@ -13,9 +13,9 @@ import numpy as np
 import dynet as dy
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--dynet_seed", default=0, type=int)
-parser.add_argument("--dynet_mem", default=512, type=int)
-parser.add_argument("--dynet_gpus", default=0, type=int)
+parser.add_argument("--dynet-seed", default=0, type=int)
+parser.add_argument("--dynet-mem", default=512, type=int)
+parser.add_argument("--dynet-gpus", default=0, type=int)
 parser.add_argument('WEMBED_SIZE', type=int, help='embedding size')
 parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
 parser.add_argument('SPARSE', type=int, help='sparse update 0/1')
