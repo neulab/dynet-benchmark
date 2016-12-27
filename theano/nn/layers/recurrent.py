@@ -162,15 +162,27 @@ class LSTM(Layer):
         self.set_name(name)
 
     def _step(self,
-              xi_t, xf_t, xo_t, xc_t, mask_t,
+              x_stacked_t, mask_t,
               h_tm1, c_tm1,
-              u_i, u_f, u_o, u_c):
+              u_stacked):
 
-        i_t = self.inner_activation(xi_t + T.dot(h_tm1, u_i))
-        f_t = self.inner_activation(xf_t + T.dot(h_tm1, u_f))
-        c_t = f_t * c_tm1 + i_t * self.activation(xc_t + T.dot(h_tm1, u_c))
-        o_t = self.inner_activation(xo_t + T.dot(h_tm1, u_o))
+        gates = x_stacked_t + T.dot(h_tm1, u_stacked)
+
+        # Extract the pre-activation gate values and apply non-linearaities
+        i_t = self.inner_activation(gates[:, 0: self.output_dim])
+        f_t = self.inner_activation(gates[:, self.output_dim: 2 * self.output_dim])
+        cell_input = self.activation(gates[:, 2 * self.output_dim: 3 * self.output_dim])
+        o_t = self.inner_activation(gates[:, 3 * self.output_dim: 4 * self.output_dim])
+
+        # Compute new cell value
+        c_t = f_t * c_tm1 + i_t * cell_input
         h_t = o_t * self.activation(c_t)
+
+        # i_t = self.inner_activation(xi_t + T.dot(h_tm1, u_i))
+        # f_t = self.inner_activation(xf_t + T.dot(h_tm1, u_f))
+        # c_t = f_t * c_tm1 + i_t * self.activation(xc_t + T.dot(h_tm1, u_c))
+        # o_t = self.inner_activation(xo_t + T.dot(h_tm1, u_o))
+        # h_t = o_t * self.activation(c_t)
 
         h_t = (1. - mask_t) * h_tm1 + mask_t * h_t
         c_t = (1. - mask_t) * c_tm1 + mask_t * c_t
@@ -179,12 +191,28 @@ class LSTM(Layer):
 
     def __call__(self, X, mask=None, init_state=None, dropout=0, train=True, srng=None):
         mask = self.get_mask(mask, X)
+        # (n_timestep, batch_size, input_dim)
         X = X.dimshuffle((1, 0, 2))
 
-        xi = T.dot(X, self.W_i) + self.b_i
-        xf = T.dot(X, self.W_f) + self.b_f
-        xc = T.dot(X, self.W_c) + self.b_c
-        xo = T.dot(X, self.W_o) + self.b_o
+        # Stack input weight matrices into a (num_inputs, 4*num_units)
+        # matrix, which speeds up computation
+        # code from: https://github.com/Lasagne/Lasagne/blob/master/lasagne/layers/recurrent.py
+
+        # xi = T.dot(X, self.W_i) + self.b_i
+        # xf = T.dot(X, self.W_f) + self.b_f
+        # xc = T.dot(X, self.W_c) + self.b_c
+        # xo = T.dot(X, self.W_o) + self.b_o
+
+        W_in_stacked = T.concatenate([self.W_i, self.W_f, self.W_c, self.W_o], axis=-1)
+
+        # Same for hidden weight matrices
+        W_hid_stacked = T.concatenate([self.U_i, self.U_f, self.U_c, self.U_o], axis=-1)
+
+        # Stack biases into a (4*num_units) vector
+        b_stacked = T.concatenate([self.b_i, self.b_f, self.b_c, self.b_o], axis=0)
+
+        # pre compute input transformations
+        W_trans = T.dot(X, W_in_stacked) + b_stacked
 
         if init_state:
             # (batch_size, output_dim)
@@ -194,12 +222,12 @@ class LSTM(Layer):
 
         [outputs, cells], updates = theano.scan(
             self._step,
-            sequences=[xi, xf, xo, xc, mask],
+            sequences=[W_trans, mask],
             outputs_info=[
                 first_state,
                 T.unbroadcast(alloc_zeros_matrix(X.shape[1], self.output_dim), 1)
             ],
-            non_sequences=[self.U_i, self.U_f, self.U_o, self.U_c])
+            non_sequences=[W_hid_stacked])
 
         if self.return_sequences:
             return outputs.dimshuffle((1, 0, 2))
