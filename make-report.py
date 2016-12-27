@@ -46,7 +46,7 @@ for line in sys.stdin:
   m = re.search(fnameregex, line.strip())
   if m:
     task = m.group(1)
-    device = "gpu" if m.group(2) == "gpu" else "cpu"
+    device = "gpu" if m.group(2) == "-gpu" else "cpu"
     toolkit = m.group(3)
     params = m.group(4)
     trial = int(m.group(5))
@@ -80,18 +80,20 @@ for line in sys.stdin:
 
 def getmaxstat(task, device, toolkit, setting, stat):
   my_stats = []
-  for trail in range(1,4):
+  for trial in range(1,4):
     my_id = (task, device, toolkit, setting, trial)
     if my_id in stats and stat in stats[my_id]:
       my_stats.append(stats[my_id][stat])
-  return "%.2f" % max(my_stats) if len(my_stats) else "TODO"
+  return "%.2f" % max(my_stats) if len(my_stats) > 0 else "TODO"
 
 ###### First section: toolkit comparison
 
 # CPU/GPU speeds for all toolkits/tasks
 tasks = [
   ("RNNLM (MB=1) ", "rnnlm-batch", "ms01-es128-hs256-sp0"),
+  ("RNNLM (MB=4)",  "rnnlm-batch", "ms04-es128-hs256-sp0"),
   ("RNNLM (MB=16)", "rnnlm-batch", "ms16-es128-hs256-sp0"),
+  ("RNNLM (MB=64)", "rnnlm-batch", "ms64-es128-hs256-sp0"),
   ("BiLSTM Tagger", "bilstm-tagger", "ws128-hs50-mlps32-su0"),
   ("BiLSTM Tagger w/Char", "bilstm-tagger-withchar", "cs20-ws128-hs50-mlps32-su0"),
   ("TreeLSTM", "treenn", "ws128-hs128-su0"),
@@ -173,6 +175,6 @@ for name, task, setting in tasks:
   print(" & ".join(cols)+" \\\\")
 print("\\end{tabular}")
 print("\\caption{Processing speed with dense or sparse updates.}")
-print("\\label{tab:speeds}")
+print("\\label{tab:sparseresults}")
 print("\\end{table}")
 print("")
