@@ -24,8 +24,8 @@ NUM_LAYERS = 1
 GPU = False
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
-train_file='data/text/train.txt'
-test_file='data/text/dev.txt'
+train_file='../data/text/train.txt'
+test_file='../data/text/dev.txt'
 w2i = defaultdict(count(0).next)
 eos = '<s>'
 
@@ -47,8 +47,8 @@ test = list(read(test_file))
 S = w2i[eos]
 assert(nwords == len(w2i))
 
-train.sort(key=lambda x: -len(x))
-test.sort(key=lambda x: -len(x))
+train.sort(key=lambda x: len(x), reverse=True)
+test.sort(key=lambda x: len(x), reverse=True)
 
 if args.MB_SIZE != 0:
   train_order = [x*args.MB_SIZE for x in range((len(train)-1)/args.MB_SIZE + 1)]
@@ -56,9 +56,6 @@ if args.MB_SIZE != 0:
 else:
   train_order = range(len(train))
   test_order = range(len(test))
-
-#max_length = len(max(train, key=len))
-#assert len(max(test, key=len)) < max_length, 'There should be no test sentences longer than the longest training sentence (%d words)' % max_length
 
 def pad(seq, element, length):
   assert len(seq) <= length
@@ -85,28 +82,35 @@ with tf.device(cpu_or_gpu):
   x_lens = tf.placeholder(tf.int32, [None], name='x_lens')
 
   x_embs = tf.squeeze(tf.nn.embedding_lookup(WORDS_LOOKUP, x_input), axis=2)
+  # Hack to fix shape so dynamic_rnn will accept this as input
   x_embs.set_shape([None, None, args.EMBED_SIZE])
+
+  # Add an output projection (an affine transform) after the RNN
   cell_out = tf.nn.rnn_cell.OutputProjectionWrapper(cell, nwords)
+  # Actually run the RNN
   outputs, _ = tf.nn.dynamic_rnn(cell_out, x_embs, sequence_length=x_lens, dtype=tf.float32)
 
-  losses = tf.nn.sparse_softmax_cross_entropy_with_logits(outputs, x_input)
+  # Compute categorical loss
+  # Don't predict the first input (<s>), and don't worry about the last output (after we've input </s>)
+  losses = tf.nn.sparse_softmax_cross_entropy_with_logits(outputs[:-1], x_input[1:])
   loss = tf.reduce_mean(losses)
   optimizer = tf.train.AdamOptimizer().minimize(loss)
 
-  print('Graph created.' , file=sys.stderr)
+  print('Graph created.', file=sys.stderr)
 
 sess = tf.InteractiveSession(config=tf.ConfigProto(intra_op_parallelism_threads=1))
 tf.global_variables_initializer().run()
-print('Session initialized.' , file=sys.stderr)
+print('Session initialized.', file=sys.stderr)
+
 train_losses = [] 
-print("startup time: %r" % (time.time() - start))
+print('startup time: %r' % (time.time() - start))
 start = time.time()
 i = all_time = dev_time = all_tagged = train_words = 0
 for ITER in range(10):
   random.shuffle(train_order)
-  for i,sid in enumerate(train_order, start=1):
-    if i % int(500/args.MB_SIZE) == 0:
-      print("Updates so far:", (i-1), "Loss:" , sum(train_losses) / train_words)
+  for i, sid in enumerate(train_order, start=1):
+    if i % int(500 / args.MB_SIZE) == 0:
+      print('Updates so far: %d Loss: %f' % (i - 1, sum(train_losses) / train_words))
       all_tagged += train_words
       train_losses = []
       train_words = 0
@@ -116,20 +120,20 @@ for ITER in range(10):
       test_losses = []
       test_words = 0
       all_time += time.time() - start
-      print("Testing on dev set...")
+      print('Testing on dev set...')
 
       for tid in test_order:
         t_examples = test[tid:tid+args.MB_SIZE]
         x_lens_in = [len(example) for example in t_examples]
         x_in = [pad(example, S, max(x_lens_in)) for example in t_examples]
         test_loss = sess.run(loss, feed_dict={x_input: x_in, x_lens: x_lens_in})
-        tot_words = sum([len(t_example) for t_example in t_examples])
+        tot_words = sum(x_lens_in) - len(x_lens_in) # Subtract out <s> from the denominator
         test_losses.append(test_loss * tot_words)
         test_words += tot_words
       nll = sum(test_losses) / test_words
       dev_time += time.time() - dev_start 
       train_time = time.time() - start - dev_time
-      print('nll=%.4f, ppl=%.4f, time=%.4f, words_per_sec=%.4f' % (nll, math.exp(nll), train_time, all_tagged/train_time), file=sys.stderr)
+      print ('nll=%.4f, ppl=%.4f, time=%.4f, words_per_sec=%.4f' % (nll, math.exp(nll), train_time, all_tagged/train_time), file=sys.stderr)
       if all_time > args.TIMEOUT:
         sys.exit(0)
 
@@ -138,6 +142,6 @@ for ITER in range(10):
     x_lens_in = [len(example) for example in examples]
     x_in = [pad(example, S, max(x_lens_in)) for example in examples]
     train_loss, _ = sess.run([loss, optimizer], feed_dict={x_input: x_in, x_lens: x_lens_in})
-    tot_words = sum([len(example) for example in examples])
+    tot_words = sum(x_lens_in) - len(x_lens_in) # Subtract out <s> from the denominator
     train_losses.append(train_loss * tot_words)
     train_words += tot_words
