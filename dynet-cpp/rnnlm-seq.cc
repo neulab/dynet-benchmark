@@ -62,36 +62,16 @@ struct RNNLanguageModel {
     for(auto & ctxt : ctxts)
       rotate(ctxt.begin(), ctxt.begin()+ctxt.size()-1, ctxt.end());
     Expression looks = lookup_seq(cg, p_c, ctxts);
-  
-    // Initial values
-    vector<unsigned> wids(tot_sents, 0);
-    vector<float> masks(tot_sents);
-    Expression s;
-    vector<Expression> losses;
-    size_t j;
 
-    // feed word vectors into the RNN and predict the next word
-    for(size_t i = 0; i < sent[pos].size(); ++i) {
-      s = builder.add_input(pick(looks, i, 1));
-      // Get the words
-      for(j = 0; j < tot_sents && i < sent[pos+j].size(); ++j) {
-        wids[j] = sent[pos+j][i];
-        masks[j] = 1.f;
-      }
-      // And the masks
-      for(; j < tot_sents; ++j) {
-        wids[j] = 0;
-        masks[j] = 0.f;
-      }
-      // calculate the softmax and loss
-      Expression score = affine_transform({b_exp, W_exp, s});
-      Expression loss = pickneglogsoftmax(score, wids);
-      if(0.f == *masks.rbegin())
-        loss = cmult(loss, input(cg, Dim({1}, tot_sents), masks));
-      losses.push_back(loss);
-    }
+    // Generate the contexts and scores
+    Expression states = builder.transduce_seq(looks);
+    Expression scores = affine_transform({b_exp, W_exp, states});
+
+    // Calculate the loss
+    vector<vector<unsigned> > predicts(sent.begin()+pos, sent.begin()+pos+tot_sents);
+    Expression losses = pickneglogsoftmax_seq(scores, predicts);
     
-    return sum_batches(sum(losses));
+    return sum_batches(sum_rows(losses));
   }
 
 };
