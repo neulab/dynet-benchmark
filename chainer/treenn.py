@@ -202,7 +202,10 @@ for ITER in range(100):
   all_time += time.time() - start
   good = bad = 0.0
   for tree in dev:
-    pred = i2l[tlm.classify(tlm.expr_for_tree(tree,False)).data.argmax()]
+    my_data = tlm.classify(tlm.expr_for_tree(tree,False)).data
+    if args.chainer_gpu >= 0:
+      my_data = xp.asnumpy(my_data)
+    pred = i2l[my_data.argmax()]
     if pred == tree.label:
       good += 1
     else:

@@ -37,6 +37,8 @@ runcmd() {
       mycmd="$PYTHON -u $1/$2.py $DYFLAGS"
     elif [[ $1 == "chainer" ]]; then
       mycmd="$PYTHON -u $1/$2.py --chainer_gpu $CGPU"
+    elif [[ $1 == "tensorflow" ]]; then
+      mycmd="$PYTHON -u $1/$2.py --gpu"
     else
       mycmd="$PYTHON -u $1/$2.py"
     fi
@@ -54,7 +56,7 @@ for trial in 1 2 3; do
     # for mbsize in 64 32 16 08 04 02 01; do
     for mbsize in 64 16 04 01; do
       # for f in dynet-cpp dynet-py chainer theano tensorflow; do
-      for f in dynet-cpp dynet-py; do
+      for f in dynet-cpp dynet-py chainer theano tensorflow; do
         if [[ $f == "dynet-cpp" ]]; then
           runcmd $f rnnlm-seq "$mbsize $embsize $hidsize 0" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
         fi
@@ -69,7 +71,7 @@ for trial in 1 2 3; do
     for mbsize in 16 01; do
       # for f in dynet-cpp dynet-py; do
       for f in dynet-cpp; do
-        runcmd $f rnnlm-seq "$mbsize $embsize $hidsize 1" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
+        runcmd $f rnnlm-batch "$mbsize $embsize $hidsize 1" $f-ms$mbsize-es$embsize-hs$hidsize-sp1-t$trial
       done
     done
   done
@@ -79,7 +81,7 @@ for trial in 1 2 3; do
   hidsize=50
   mlpsize=32
   # for f in dynet-cpp dynet-py chainer theano tensorflow; do
-  for f in dynet-cpp dynet-py; do
+  for f in dynet-cpp dynet-py chainer; do
     runcmd $f bilstm-tagger "$wembsize $hidsize $mlpsize 0" $f-ws$wembsize-hs$hidsize-mlps$mlpsize-su0-t$trial
     if [[ $f == dynet* ]]; then
       runcmd $f bilstm-tagger "$wembsize $hidsize $mlpsize 1" $f-ws$wembsize-hs$hidsize-mlps$mlpsize-su1-t$trial
@@ -92,7 +94,7 @@ for trial in 1 2 3; do
   hidsize=50
   mlpsize=32
   # for f in dynet-cpp dynet-py theano chainer; do
-  for f in dynet-cpp dynet-py; do
+  for f in dynet-cpp dynet-py chainer; do
     runcmd $f bilstm-tagger-withchar "$cembsize $wembsize $hidsize $mlpsize 0" $f-cs$cembsize-ws$wembsize-hs$hidsize-mlps$mlpsize-su0-t$trial
     if [[ $f == dynet* ]]; then
       runcmd $f bilstm-tagger-withchar "$cembsize $wembsize $hidsize $mlpsize 1" $f-cs$cembsize-ws$wembsize-hs$hidsize-mlps$mlpsize-su1-t$trial
@@ -103,7 +105,7 @@ for trial in 1 2 3; do
   wembsize=128
   hidsize=128
   # for f in dynet-cpp dynet-py chainer; do
-  for f in dynet-cpp dynet-py; do
+  for f in dynet-cpp dynet-py chainer; do
     runcmd $f treenn "$wembsize $hidsize 0" $f-ws$wembsize-hs$hidsize-su0-t$trial
     if [[ $f == dynet* ]]; then
       runcmd $f treenn "$wembsize $hidsize 1" $f-ws$wembsize-hs$hidsize-su1-t$trial
