@@ -142,7 +142,7 @@ trainer.set_sparse_updates(True if args.SPARSE == 1 else False)
 print ("startup time: %r" % (time.time() - start))
 sents = 0
 all_time = 0
-for ITER in range(50):
+for ITER in range(100):
     random.shuffle(train)
     closs = 0.0
     cwords = 0

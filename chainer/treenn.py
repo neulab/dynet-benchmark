@@ -179,7 +179,7 @@ trainer.setup(tlm)
 print("startup time: %r" % (time.time() - start))
 sents = 0
 all_time = 0
-for ITER in range(50):
+for ITER in range(100):
   random.shuffle(train)
   closs = 0.0
   cwords = 0

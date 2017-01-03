@@ -22,7 +22,7 @@ else
 fi
 
 TIMEOUT=600
-LONGTIMEOUT=600
+LONGTIMEOUT=3600
 
 runcmd() {
   LFILE=log/$2$GPUSUF/$4.log
@@ -32,6 +32,8 @@ runcmd() {
       mycmd="$1/$2$GPUSUF $DYFLAGS"
       if [[ $4 =~ dynet-cpp-bs01-ws128-hs256-.* ]] || [[ $4 =~ dynet-cpp-bs16-ws128-hs256-.* ]] || [[ $2 =~ bilstm.* ]] || [[ $2 =~ treenn ]]; then 
         MYTIMEOUT=$LONGTIMEOUT
+      else
+        return
       fi
     elif [[ $1 == "dynet-py" ]]; then
       mycmd="$PYTHON -u $1/$2.py $DYFLAGS"
@@ -48,11 +50,38 @@ runcmd() {
 
 for trial in 1 2 3; do
 
+  # Run rnnlm-batch
+  for embsize in 128; do
+    hidsize=$(($embsize*2))
+    # for mbsize in 64 32 16 08 04 02 01; do
+    for mbsize in 64 16 04 01; do
+      # for f in dynet-cpp dynet-py chainer theano tensorflow; do
+      for f in dynet-cpp dynet-py; do
+        runcmd $f rnnlm-batch "$mbsize $embsize $hidsize 0" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
+        if [[ $f == "dynet-cpp" ]]; then
+          runcmd $f rnnlm-seq "$mbsize $embsize $hidsize 0" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
+        fi
+      done
+    done
+  done
+
+  # run sparse rnnlm-seq on a subset
+  for embsize in 128; do
+    hidsize=$(($embsize*2))
+    for mbsize in 16 01; do
+      # for f in dynet-cpp dynet-py; do
+      for f in dynet-cpp; do
+        runcmd $f rnnlm-seq "$mbsize $embsize $hidsize 1" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
+      done
+    done
+  done
+
   # Run bilstm-tagger
   wembsize=128
   hidsize=50
   mlpsize=32
-  for f in dynet-cpp dynet-py theano chainer tensorflow; do
+  # for f in dynet-cpp dynet-py chainer theano tensorflow; do
+  for f in dynet-cpp dynet-py; do
     runcmd $f bilstm-tagger "$wembsize $hidsize $mlpsize 0" $f-ws$wembsize-hs$hidsize-mlps$mlpsize-su0-t$trial
     if [[ $f == dynet* ]]; then
       runcmd $f bilstm-tagger "$wembsize $hidsize $mlpsize 1" $f-ws$wembsize-hs$hidsize-mlps$mlpsize-su1-t$trial
@@ -64,7 +93,8 @@ for trial in 1 2 3; do
   wembsize=128
   hidsize=50
   mlpsize=32
-  for f in dynet-cpp dynet-py theano chainer; do
+  # for f in dynet-cpp dynet-py theano chainer; do
+  for f in dynet-cpp dynet-py; do
     runcmd $f bilstm-tagger-withchar "$cembsize $wembsize $hidsize $mlpsize 0" $f-cs$cembsize-ws$wembsize-hs$hidsize-mlps$mlpsize-su0-t$trial
     if [[ $f == dynet* ]]; then
       runcmd $f bilstm-tagger-withchar "$cembsize $wembsize $hidsize $mlpsize 1" $f-cs$cembsize-ws$wembsize-hs$hidsize-mlps$mlpsize-su1-t$trial
@@ -74,32 +104,12 @@ for trial in 1 2 3; do
   # Run treenn
   wembsize=128
   hidsize=128
-  for f in dynet-cpp dynet-py chainer; do
+  # for f in dynet-cpp dynet-py chainer; do
+  for f in dynet-cpp dynet-py; do
     runcmd $f treenn "$wembsize $hidsize 0" $f-ws$wembsize-hs$hidsize-su0-t$trial
     if [[ $f == dynet* ]]; then
       runcmd $f treenn "$wembsize $hidsize 1" $f-ws$wembsize-hs$hidsize-su1-t$trial
     fi
-  done
-
-  # Run rnnlm-batch
-  for embsize in 64 128 256; do
-    hidsize=$(($embsize*2))
-    # for mbsize in 64 32 16 08 04 02 01; do
-    for mbsize in 64 16 04 01; do
-      for f in dynet-cpp dynet-py theano chainer tensorflow; do
-        runcmd $f rnnlm-batch "$mbsize $embsize $hidsize 0" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
-      done
-    done
-  done
-
-  # run sparse rnnlm-batch on a subset
-  for embsize in 128; do
-    hidsize=$(($embsize*2))
-    for mbsize in 16 01; do
-      for f in dynet-cpp dynet-py; do
-        runcmd $f rnnlm-batch "$mbsize $embsize $hidsize 1" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
-      done
-    done
   done
 
 done
