@@ -98,7 +98,7 @@ with tf.device(cpu_or_gpu):
   # Compute categorical loss
   # Don't predict the first input (<s>), and don't worry about the last output (after we've input </s>)
   # losses = tf.nn.sparse_softmax_cross_entropy_with_logits(outputs[:-1], x_input[1:])
-  losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits, tf.reshape(x_input, [-1]))
+  losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits[:-1], tf.reshape(x_input, [-1])[1:])
   loss = tf.reduce_mean(losses)
   optimizer = tf.train.AdamOptimizer().minimize(loss)
 
