@@ -22,7 +22,7 @@ else
 fi
 
 TIMEOUT=600
-LONGTIMEOUT=3600
+LONGTIMEOUT=600
 
 runcmd() {
   LFILE=log/$2$GPUSUF/$4.log
@@ -32,8 +32,6 @@ runcmd() {
       mycmd="$1/$2$GPUSUF $DYFLAGS"
       if [[ $4 =~ dynet-cpp-bs01-ws128-hs256-.* ]] || [[ $4 =~ dynet-cpp-bs16-ws128-hs256-.* ]] || [[ $2 =~ bilstm.* ]] || [[ $2 =~ treenn ]]; then 
         MYTIMEOUT=$LONGTIMEOUT
-      else
-        return
       fi
     elif [[ $1 == "dynet-py" ]]; then
       mycmd="$PYTHON -u $1/$2.py $DYFLAGS"
@@ -57,10 +55,10 @@ for trial in 1 2 3; do
     for mbsize in 64 16 04 01; do
       # for f in dynet-cpp dynet-py chainer theano tensorflow; do
       for f in dynet-cpp dynet-py; do
-        runcmd $f rnnlm-batch "$mbsize $embsize $hidsize 0" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
         if [[ $f == "dynet-cpp" ]]; then
           runcmd $f rnnlm-seq "$mbsize $embsize $hidsize 0" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
         fi
+        runcmd $f rnnlm-batch "$mbsize $embsize $hidsize 0" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
       done
     done
   done
