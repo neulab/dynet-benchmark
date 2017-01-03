@@ -13,6 +13,8 @@ import numpy as np
 import tensorflow as tf
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--gpu', dest='gpu', action='store_true')
+parser.set_defaults(gpu=False)
 parser.add_argument('MB_SIZE', type=int, help='minibatch size')
 parser.add_argument('EMBED_SIZE', type=int, help='embedding size')
 parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
@@ -21,11 +23,10 @@ parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
 args = parser.parse_args()
 
 NUM_LAYERS = 1
-GPU = False
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
-train_file='../data/text/train.txt'
-test_file='../data/text/dev.txt'
+train_file='data/text/train.txt'
+test_file='data/text/dev.txt'
 w2i = defaultdict(count(0).next)
 eos = '<s>'
 
@@ -63,7 +64,7 @@ def pad(seq, element, length):
   assert len(r) == length
   return r 
 
-if GPU:
+if args.gpu:
   cpu_or_gpu = '/gpu:0'
 else:
   cpu_or_gpu = '/cpu:0'
@@ -103,7 +104,7 @@ with tf.device(cpu_or_gpu):
 
   print('Graph created.', file=sys.stderr)
 
-sess = tf.InteractiveSession(config=tf.ConfigProto(log_device_placement=True))
+sess = tf.InteractiveSession(config=tf.ConfigProto(allow_soft_placement=True))
 tf.global_variables_initializer().run()
 print('Session initialized.', file=sys.stderr)
 
