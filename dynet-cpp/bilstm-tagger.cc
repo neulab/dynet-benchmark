@@ -167,7 +167,7 @@ int main(int argc, char**argv) {
   start = system_clock::now();
   int i = 0, all_tagged = 0, this_words = 0;
   float this_loss = 0.f, all_time = 0.f;
-  for(int iter = 0; iter < 10; iter++) {
+  for(int iter = 0; iter < 100; iter++) {
     shuffle(train.begin(), train.end(), *dynet::rndeng);
     for(auto & s : train) {
       i++;

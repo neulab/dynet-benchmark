@@ -13,6 +13,8 @@ import numpy as np
 import tensorflow as tf
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--gpu', dest='gpu', action='store_true')
+parser.set_defaults(gpu=False)
 parser.add_argument('MB_SIZE', type=int, help='minibatch size')
 parser.add_argument('EMBED_SIZE', type=int, help='embedding size')
 parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
@@ -21,11 +23,10 @@ parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
 args = parser.parse_args()
 
 NUM_LAYERS = 1
-GPU = False
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
-train_file='../data/text/train.txt'
-test_file='../data/text/dev.txt'
+train_file='data/text/train.txt'
+test_file='data/text/dev.txt'
 w2i = defaultdict(count(0).next)
 eos = '<s>'
 
@@ -63,7 +64,7 @@ def pad(seq, element, length):
   assert len(r) == length
   return r 
 
-if GPU:
+if args.gpu:
   cpu_or_gpu = '/gpu:0'
 else:
   cpu_or_gpu = '/cpu:0'
@@ -85,21 +86,25 @@ with tf.device(cpu_or_gpu):
   # Hack to fix shape so dynamic_rnn will accept this as input
   x_embs.set_shape([None, None, args.EMBED_SIZE])
 
-  # Add an output projection (an affine transform) after the RNN
-  cell_out = tf.nn.rnn_cell.OutputProjectionWrapper(cell, nwords)
   # Actually run the RNN
-  outputs, _ = tf.nn.dynamic_rnn(cell_out, x_embs, sequence_length=x_lens, dtype=tf.float32)
+  outputs, _ = tf.nn.dynamic_rnn(cell, x_embs, sequence_length=x_lens, dtype=tf.float32)
+  
+  # Affine transform
+  output = tf.reshape(tf.concat(1, outputs), [-1, args.HIDDEN_SIZE])
+  W_sm = tf.Variable(tf.random_uniform([args.HIDDEN_SIZE, nwords]))
+  b_sm = tf.Variable(tf.random_uniform([nwords]))
+  logits = tf.matmul(tf.squeeze(output), W_sm) + b_sm
 
   # Compute categorical loss
   # Don't predict the first input (<s>), and don't worry about the last output (after we've input </s>)
   # losses = tf.nn.sparse_softmax_cross_entropy_with_logits(outputs[:-1], x_input[1:])
-  losses = tf.nn.sparse_softmax_cross_entropy_with_logits(outputs, x_input)
+  losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits[:-1], tf.reshape(x_input, [-1])[1:])
   loss = tf.reduce_mean(losses)
   optimizer = tf.train.AdamOptimizer().minimize(loss)
 
   print('Graph created.', file=sys.stderr)
 
-sess = tf.InteractiveSession(config=tf.ConfigProto(log_device_placement=True))
+sess = tf.InteractiveSession(config=tf.ConfigProto(allow_soft_placement=True))
 tf.global_variables_initializer().run()
 print('Session initialized.', file=sys.stderr)
 
@@ -136,7 +141,7 @@ for ITER in range(10):
       dev_time += time.time() - dev_start 
       train_time = time.time() - start_train - dev_time
       print ('nll=%.4f, ppl=%.4f, time=%.4f, words_per_sec=%.4f' % (nll, math.exp(nll), train_time, all_tagged/train_time), file=sys.stderr)
-      start_ = time.time()
+      start_ = start_ + (time.time() - dev_start)
       if all_time > args.TIMEOUT:
         sys.exit(0)
     # train on sent

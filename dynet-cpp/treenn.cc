@@ -207,7 +207,7 @@ int main(int argc, char**argv) {
 
   int i = 0, all_tagged = 0, this_nodes = 0;
   float this_loss = 0.f, all_time = 0.f;
-  for(int iter = 0; iter < 50; iter++) {
+  for(int iter = 0; iter < 100; iter++) {
     shuffle(train.begin(), train.end(), *dynet::rndeng);
     start = system_clock::now();
     for(auto tree : train) {
