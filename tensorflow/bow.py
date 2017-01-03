@@ -77,7 +77,7 @@ def main(_):
 
     print >>sys.stderr, 'Graph created.' 
 
-  sess = tf.InteractiveSession()
+  sess = tf.InteractiveSession(config=tf.ConfigProto(log_device_placement=True))
   tf.global_variables_initializer().run()
   print >>sys.stderr, 'Session initialized.'
 

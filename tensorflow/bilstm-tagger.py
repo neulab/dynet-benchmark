@@ -129,7 +129,7 @@ with tf.device(cpu_or_gpu):
   optimizer = tf.train.AdamOptimizer().minimize(loss)
   print('Graph created.' , file=sys.stderr)
 
-sess = tf.InteractiveSession()
+sess = tf.InteractiveSession(config=tf.ConfigProto(log_device_placement=True))
 tf.global_variables_initializer().run()
 print('Session initialized.' , file=sys.stderr)
 train_losses = [] 
@@ -137,7 +137,7 @@ print ("startup time: %r" % (time.time() - start))
 start = time.time()
 i = all_time = dev_time = all_tagged = this_tagged = this_loss = 0
 
-for ITER in range(50):
+for ITER in range(100):
   random.shuffle(train)
   for s in train:
     i += 1
