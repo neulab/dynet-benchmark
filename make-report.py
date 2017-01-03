@@ -73,7 +73,7 @@ for line in sys.stdin:
           val = float(m.group(2))
           mystats[can] = val
           if can == "accuracy":
-            if "rnnlm" in task: val *= 100
+            if "rnnlm" not in task: val *= 100
             else: val *= -1
             stats[idtup][can] = max(val, stats[idtup].get(can,-1e10))
           else:
@@ -112,7 +112,7 @@ def make_speed_table(device):
     cols = [name]
     for i, toolkit in enumerate(toolkits):
       if (toolkit, task) in taskna:
-        cols.append("\\multicolumn{1}{"+("c" if i == len(toolkits)-1 else "c|")+"}{-}")
+        cols.append("\\multicolumn{1}{c}{-}")
       else:
         cols.append(getmaxstat(task, device, toolkit, setting, "speed"))
     print(" & ".join(cols)+" \\\\")
@@ -129,11 +129,11 @@ def get_code_complexity(toolkit, task):
   chars = 0
   if toolkit == "dynet-seq":
     if not task == "rnnlm-batch":
-      return "\\multicolumn{1}{%s}{-}" % ("c" if toolkit == "tensorflow" else "c|")
+      return "\\multicolumn{1}{c}{-}"
     toolkit = "dynet-cpp"
     task = "rnnlm-seq"
   if (toolkit, task) in taskna:
-    return "\\multicolumn{1}{%s}{-}" % ("c" if toolkit == "tensorflow" else "c|")
+    return "\\multicolumn{1}{c}{-}"
   with open("%s/%s.%s" % (toolkit, task, "cc" if toolkit == "dynet-cpp" else "py"), "r") as f:
     for line in f:
       line = re.sub(commentregex, "", line.strip())
@@ -185,7 +185,7 @@ for name, task, setting in tasks:
         cols.append(getmaxstat(task, device, "dynet-cpp", setting+ds, criterion))
   print(" & ".join(cols)+" \\\\")
 print("\\end{tabular}")
-print("\\caption{Processing speed with dense or sparse updates.}")
+print("\\caption{Processing speed and accuracy after 10 minutes with dense or sparse updates.}")
 print("\\label{tab:sparseresults}")
 print("\\end{table}")
 print("")
