@@ -195,7 +195,7 @@ print ("startup time: %r" % (time.time() - start))
 start = time.time()
 i = all_time = dev_time = all_tagged = this_tagged = this_loss = 0
 
-for ITER in range(50):
+for ITER in range(100):
   random.shuffle(train)
   for batch_id, (batch_start, batch_end) in enumerate(batches):
     i += MB_SIZE

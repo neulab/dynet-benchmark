@@ -19,14 +19,14 @@ using namespace dynet::expr;
 
 // Read a file where each line is of the form "word1 word2 ..."
 // Yields lists of the form [word1, word2, ...]
-vector<vector<int> > read(const string & fname, Dict & vw) {
+vector<vector<unsigned> > read(const string & fname, Dict & vw) {
   ifstream fh(fname);
   if(!fh) throw std::runtime_error("Could not open file");
   string str; 
-  vector<vector<int> > sents;
+  vector<vector<unsigned> > sents;
   while(getline(fh, str)) {
     istringstream iss(str);
-    vector<int> tokens;
+    vector<unsigned> tokens;
     while(iss >> str)
       tokens.push_back(vw.convert(str));
     tokens.push_back(vw.convert("<s>"));
@@ -46,7 +46,7 @@ struct RNNLanguageModel {
     b_sm = model.add_parameters({vocab_size}, ParameterInitUniform(0.5));
   }
 
-  Expression calc_lm_loss(const vector<vector<int> > & sent, int pos, int mb_size, ComputationGraph & cg) {
+  Expression calc_lm_loss(const vector<vector<unsigned> > & sent, int pos, int mb_size, ComputationGraph & cg) {
   
     // parameters -> expressions
     Expression W_exp = parameter(cg, W_sm);
@@ -55,51 +55,36 @@ struct RNNLanguageModel {
     // initialize the RNN
     builder.new_graph(cg);  // reset RNN builder for new graph
     builder.start_new_sequence();
-  
-    // start the rnn by inputting "<s>"
-    size_t tot_sents = min(sent.size()-pos, (size_t)mb_size);
-    vector<unsigned> wids(tot_sents, 0);
-    vector<float> masks(tot_sents);
-    Expression s = builder.add_input(lookup(cg, p_c, wids)); 
 
-    // feed word vectors into the RNN and predict the next word
-    vector<Expression> losses;
-    size_t j;
-    for(size_t i = 0; i < sent[pos].size(); ++i) {
-      // Get the words
-      for(j = 0; j < tot_sents && i < sent[pos+j].size(); ++j) {
-        wids[j] = sent[pos+j][i];
-        masks[j] = 1.f;
-      }
-      // And the masks
-      for(; j < tot_sents; ++j) {
-        wids[j] = 0;
-        masks[j] = 0.f;
-      }
-      // calculate the softmax and loss
-      Expression score = affine_transform({b_exp, W_exp, s});
-      Expression loss = pickneglogsoftmax(score, wids);
-      if(0.f == *masks.rbegin())
-        loss = cmult(loss, input(cg, Dim({1}, tot_sents), masks));
-      losses.push_back(loss);
-      // update the state of the RNN
-      s = builder.add_input(lookup(cg, p_c, wids));
-    }
+    // Create contexts and perform lookup
+    size_t tot_sents = min(sent.size()-pos, (size_t)mb_size);
+    vector<vector<unsigned> > ctxts(sent.begin()+pos, sent.begin()+pos+tot_sents);
+    for(auto & ctxt : ctxts)
+      rotate(ctxt.begin(), ctxt.begin()+ctxt.size()-1, ctxt.end());
+    Expression looks = lookup_seq(cg, p_c, ctxts);
+
+    // Generate the contexts and scores
+    Expression states = builder.transduce_seq(looks);
+    Expression scores = affine_transform({b_exp, W_exp, states});
+
+    // Calculate the loss
+    vector<vector<unsigned> > predicts(sent.begin()+pos, sent.begin()+pos+tot_sents);
+    Expression losses = pickneglogsoftmax_seq(scores, predicts);
     
-    return sum_batches(sum(losses));
+    return sum_batches(sum_rows(losses));
   }
 
 };
 
 struct length_greater_then {
-    inline bool operator() (const vector<int> & struct1, const vector<int> & struct2) {
+    inline bool operator() (const vector<unsigned> & struct1, const vector<unsigned> & struct2) {
         return (struct1.size() > struct2.size());
     }
 };
 
-vector<int> prepare_minibatch(int mb_size, vector<vector<int> > & data) {
+vector<unsigned> prepare_minibatch(int mb_size, vector<vector<unsigned> > & data) {
   stable_sort(data.begin(), data.end(), length_greater_then());
-  vector<int> ids;
+  vector<unsigned> ids;
   for(size_t i = 0; i < data.size(); i += mb_size)
     ids.push_back(i);
   return ids;
@@ -133,11 +118,11 @@ int main(int argc, char** argv) {
 
   Dict vw;
   vw.convert("<s>");
-  vector<vector<int> > train = read(train_file, vw);
+  vector<vector<unsigned> > train = read(train_file, vw);
   vw.freeze();
-  vector<vector<int> > test = read(test_file, vw);
-  vector<int> train_ids = prepare_minibatch(MB_SIZE, train);
-  vector<int> test_ids = prepare_minibatch(MB_SIZE, test);
+  vector<vector<unsigned> > test = read(test_file, vw);
+  vector<unsigned> train_ids = prepare_minibatch(MB_SIZE, train);
+  vector<unsigned> test_ids = prepare_minibatch(MB_SIZE, test);
   int test_words = 0;
   for(auto & sent : test) test_words += sent.size();
 

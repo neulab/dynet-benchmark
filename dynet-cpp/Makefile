@@ -16,15 +16,18 @@ else
   CXX_FLAGS=-std=c++11 -I${EIGEN_PATH} -I${DYNET_PATH} -L${DYNET_PATH}/build/dynet -DBOOST_REGEX -lboost_regex -Ofast
 endif
 
-all: rnnlm-batch treenn bilstm-tagger bilstm-tagger-withchar
+all: rnnlm-batch rnnlm-seq treenn bilstm-tagger bilstm-tagger-withchar
 
-gpu: rnnlm-batch-gpu treenn-gpu bilstm-tagger-gpu bilstm-tagger-withchar-gpu
+gpu: rnnlm-batch-gpu rnnlm-seq-gpu treenn-gpu bilstm-tagger-gpu bilstm-tagger-withchar-gpu
 
 clean:
-	rm -f rnnlm-batch treenn bilstm-tagger bilstm-tagger-withchar rnnlm-batch-gpu treenn-gpu bilstm-tagger-gpu bilstm-tagger-withchar-gpu
+	rm -f rnnlm-batch rnnlm-seq treenn bilstm-tagger bilstm-tagger-withchar rnnlm-batch-gpu rnnlm-seq-gpu treenn-gpu bilstm-tagger-gpu bilstm-tagger-withchar-gpu
 
 rnnlm-batch: rnnlm-batch.cc
 	${CC} -o rnnlm-batch rnnlm-batch.cc ${CXX_FLAGS} ${DYNET_LIB_CPU}
+
+rnnlm-seq: rnnlm-seq.cc
+	${CC} -o rnnlm-seq rnnlm-seq.cc ${CXX_FLAGS} ${DYNET_LIB_CPU}
 
 treenn: treenn.cc
 	${CC} -o treenn treenn.cc ${CXX_FLAGS} ${DYNET_LIB_CPU}
@@ -37,6 +40,9 @@ bilstm-tagger-withchar: bilstm-tagger-withchar.cc
 
 rnnlm-batch-gpu: rnnlm-batch.cc
 	${CC} -o rnnlm-batch-gpu rnnlm-batch.cc ${CXX_FLAGS} ${DYNET_LIB_GPU}
+
+rnnlm-seq-gpu: rnnlm-seq.cc
+	${CC} -o rnnlm-seq-gpu rnnlm-seq.cc ${CXX_FLAGS} ${DYNET_LIB_GPU}
 
 treenn-gpu: treenn.cc
 	${CC} -o treenn-gpu treenn.cc ${CXX_FLAGS} ${DYNET_LIB_GPU}
