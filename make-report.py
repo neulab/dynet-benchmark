@@ -12,7 +12,7 @@ stats = defaultdict(lambda: {})
 allstats = defaultdict(lambda: [])
 
 ##### Regexes
-fnameregex = re.compile(r"log/([a-z-]+?)(-gpu|)/(dynet-py|dynet-cpp|chainer|theano|tensorflow)-(.*?)-t([123]).log:(.*)")
+fnameregex = re.compile(r"log/([a-z-]+?)(-gpu|)/(dynet-py|dynet-cpp|dynet-seq|chainer|theano|tensorflow)-(.*?)-t([123]).log:(.*)")
 startregex = re.compile(r"startup time: (.*)")
 eqregex = re.compile(r"(.*)=(.*)")
 commentregex = re.compile(r"^ *((#|//).*)?")
@@ -31,18 +31,24 @@ taskna = {
   ("tensorflow", "bilstm-tagger-withchar"): 1,
   ("tensorflow", "treenn"): 1,
   ("theano", "treenn"): 1,
+  ("dynet-seq", "bilstm-tagger"): 1,
+  ("dynet-seq", "bilstm-tagger-withchar"): 1,
+  ("dynet-seq", "treenn"): 1,
 }
-toolkits = ["dynet-cpp", "dynet-py", "chainer", "theano", "tensorflow"]
+toolkits = ["dynet-cpp", "dynet-py", "chainer", "dynet-seq", "theano", "tensorflow"]
 prettyname = {
-  "dynet-cpp": "DyNet C++",
-  "dynet-py":  "DyNet Py",
-  "tensorflow":"TensorFlow",
+  "dynet-cpp": "DyC++",
+  "dynet-py":  "DyPy",
+  "dynet-seq": "DyC++ Seq",
+  "tensorflow":"TF",
   "chainer":   "Chainer",
   "theano":    "Theano"
 }
 
 ##### Load from log files
 for line in sys.stdin:
+  line = line.replace("rnnlm-seq/dynet-cpp", "rnnlm-batch/dynet-seq")
+  line = line.replace("rnnlm-seq-gpu/dynet-cpp", "rnnlm-batch-gpu/dynet-seq")
   m = re.search(fnameregex, line.strip())
   if m:
     task = m.group(1)
@@ -67,7 +73,7 @@ for line in sys.stdin:
           val = float(m.group(2))
           mystats[can] = val
           if can == "accuracy":
-            if task != "rnnlm-batch": val *= 100
+            if "rnnlm" not in task: val *= 100
             else: val *= -1
             stats[idtup][can] = max(val, stats[idtup].get(can,-1e10))
           else:
@@ -100,13 +106,13 @@ tasks = [
 ]
 def make_speed_table(device):
   print("\\begin{table}")
-  print("\\begin{tabular}{c|r|r|r|r|r}")
+  print("\\begin{tabular}{c|rrr|rrr}")
   print(" & "+" & ".join([prettyname[x] for x in toolkits])+" \\\\ \hline")
   for name, task, setting in tasks:
     cols = [name]
     for i, toolkit in enumerate(toolkits):
       if (toolkit, task) in taskna:
-        cols.append("\\multicolumn{1}{"+("c" if i == len(toolkits)-1 else "c|")+"}{-}")
+        cols.append("\\multicolumn{1}{c}{-}")
       else:
         cols.append(getmaxstat(task, device, toolkit, setting, "speed"))
     print(" & ".join(cols)+" \\\\")
@@ -121,8 +127,13 @@ make_speed_table("gpu")
 # Code complexities
 def get_code_complexity(toolkit, task):
   chars = 0
+  if toolkit == "dynet-seq":
+    if not task == "rnnlm-batch":
+      return "\\multicolumn{1}{c}{-}"
+    toolkit = "dynet-cpp"
+    task = "rnnlm-seq"
   if (toolkit, task) in taskna:
-    return "\\multicolumn{1}{%s}{-}" % ("c" if toolkit == "tensorflow" else "c|")
+    return "\\multicolumn{1}{c}{-}"
   with open("%s/%s.%s" % (toolkit, task, "cc" if toolkit == "dynet-cpp" else "py"), "r") as f:
     for line in f:
       line = re.sub(commentregex, "", line.strip())
@@ -136,7 +147,7 @@ tasks = [
   ("TreeLSTM", "treenn"),
 ]
 print("\\begin{table}")
-print("\\begin{tabular}{c|r|r|r|r|r}")
+print("\\begin{tabular}{c|rrrrrr}")
 print(" & "+" & ".join([prettyname[x] for x in toolkits])+" \\\\ \hline")
 for name, task in tasks:
   cols = [name]
@@ -174,7 +185,7 @@ for name, task, setting in tasks:
         cols.append(getmaxstat(task, device, "dynet-cpp", setting+ds, criterion))
   print(" & ".join(cols)+" \\\\")
 print("\\end{tabular}")
-print("\\caption{Processing speed with dense or sparse updates.}")
+print("\\caption{Processing speed and accuracy after 10 minutes with dense or sparse updates.}")
 print("\\label{tab:sparseresults}")
 print("\\end{table}")
 print("")

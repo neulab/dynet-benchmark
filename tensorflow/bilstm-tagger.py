@@ -13,6 +13,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', dest='gpu', action='store_true')
+parser.set_defaults(gpu=False)
 parser.add_argument('WEMBED_SIZE', type=int, help='embedding size')
 parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
 parser.add_argument('MLP_SIZE', type=int, help='embedding size')
