@@ -25,14 +25,18 @@ args = parser.parse_args()
 
 if args.chainer_gpu >= 0:
   # use GPU
-  from chainer.cuda import cupy as xp, get_device
+  import cupy as xp
+  import numpy as np
+  from chainer.cuda import get_device
+  # from chainer.cuda import cupy as xp, get_device
   get_device(args.chainer_gpu).use()
 else:
   # use CPU
   import numpy as xp
+  import numpy as np
 
 def makevar(x):
-  return Variable(xp.array([x], dtype=xp.int32))
+  return Variable(np.array([x], dtype=np.int32))
 
 # format of files: each line is "word1|tag2 word2|tag2 ..."
 train_file="data/tags/train.txt"
@@ -98,7 +102,8 @@ class Tagger(Chain):
     )
 
   def word_rep(self, w):
-    return self.embed(makevar(vw.w2i[w] if wc[w] > 5 else UNK))
+    val = vw.w2i[w] if wc[w] > 5 else UNK
+    return self.embed(makevar(val))
 
   def build_tagging_graph(self, words):
     #initialize the RNNs

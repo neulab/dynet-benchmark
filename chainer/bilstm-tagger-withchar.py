@@ -26,13 +26,15 @@ args = parser.parse_args()
 if args.chainer_gpu >= 0:
   # use GPU
   from chainer.cuda import cupy as xp, get_device
+  import numpy as np
   get_device(args.chainer_gpu).use()
 else:
   # use CPU
   import numpy as xp
+  import numpy as np
 
 def makevar(x):
-  return Variable(xp.array([x], dtype=xp.int32))
+  return Variable(np.array([x], dtype=np.int32))
 
 # format of files: each line is "word1|tag2 word2|tag2 ..."
 train_file="data/tags/train.txt"
