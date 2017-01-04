@@ -25,8 +25,8 @@ args = parser.parse_args()
 NUM_LAYERS = 1
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
-train_file='/data/text/train.txt'
-test_file='/data/text/dev.txt'
+train_file='data/text/train.txt'
+test_file='data/text/dev.txt'
 w2i = defaultdict(count(0).next)
 eos = '<s>'
 
