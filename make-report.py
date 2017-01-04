@@ -84,13 +84,33 @@ for line in sys.stdin:
     sys.exit(1)
 # print(stats)
 
+# def format_num(num):
+#   if num > 1e6:
+#     return "%.03gM" % (float(num)/1e6)
+#   elif num > 1e3:
+#     return "%.03gk" % (float(num)/1e3)
+#   else:
+#     return "%.03g" % float(num)
+
+# TODO: There must be a better way to do this...
+def format_num(num):
+  fnum = float(num)
+  val = "%.03g" % fnum
+  if fnum >= 1 and fnum < 10:
+    val = "%.2f" % fnum
+  elif fnum >= 10 and fnum < 100:
+    val = "%.1f" % fnum
+  elif float(num) > 1000:
+    val = "%.f" % float(val)
+  return val
+
 def getmaxstat(task, device, toolkit, setting, stat):
   my_stats = []
   for trial in range(1,4):
     my_id = (task, device, toolkit, setting, trial)
     if my_id in stats and stat in stats[my_id]:
       my_stats.append(stats[my_id][stat])
-  return "%.2f" % max(my_stats) if len(my_stats) > 0 else "TODO"
+  return format_num(max(my_stats)) if len(my_stats) > 0 else "TODO"
 
 ###### First section: toolkit comparison
 
