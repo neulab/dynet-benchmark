@@ -12,6 +12,8 @@ import tensorflow as tf
 import argparse
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--gpu', dest='gpu', action='store_true')
+parser.set_defaults(gpu=False)
 parser.add_argument('WEMBED_SIZE', type=int, help='embedding size')
 parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
 parser.add_argument('MLP_SIZE', type=int, help='embedding size')
@@ -20,7 +22,6 @@ parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
 args = parser.parse_args()
 
 NUM_LAYERS = 1
-GPU = False
 
 # format of files: each line is "word1/tag2 word2/tag2 ..."
 train_file='data/tags/train.txt'
@@ -72,15 +73,13 @@ ntags  = vt.size()
 print ("nwords=%r, ntags=%r" % (nwords, ntags))
 
 def get_tags(log_probs):
-  sess = tf.InteractiveSession()
   sent_tags = []
-  for word_probs in tf.unstack(log_probs):
-    tag = tf.argmax(word_probs, axis=0)
-    tag = sess.run(tag)
+  for word_probs in log_probs:
+    tag = np.argmax(word_probs, axis=0)
     sent_tags.append(tag)
   return sent_tags
 
-if GPU:
+if args.gpu:
   cpu_or_gpu = '/gpu:0'
 else:
   cpu_or_gpu = '/cpu:0'
@@ -105,7 +104,7 @@ with tf.device(cpu_or_gpu):
   # Word-level LSTM (configurable number of layers, input is unspecified,
   # but will be equal to the embedding dim, output=128)
 
-  cell = tf.nn.rnn_cell.BasicLSTMCell(args.HIDDEN_SIZE)
+  cell = tf.nn.rnn_cell.BasicLSTMCell(args.HIDDEN_SIZE, forget_bias=0.0, state_is_tuple=True)
   cell = tf.nn.rnn_cell.MultiRNNCell([cell] * NUM_LAYERS, state_is_tuple=True)
 
   outputs, _ =  tf.nn.bidirectional_dynamic_rnn(cell_fw=cell,
@@ -129,30 +128,33 @@ with tf.device(cpu_or_gpu):
   optimizer = tf.train.AdamOptimizer().minimize(loss)
   print('Graph created.' , file=sys.stderr)
 
-sess = tf.InteractiveSession(config=tf.ConfigProto(log_device_placement=True))
+sess = tf.InteractiveSession(config=tf.ConfigProto(allow_soft_placement=True))
 tf.global_variables_initializer().run()
 print('Session initialized.' , file=sys.stderr)
 train_losses = [] 
 print ("startup time: %r" % (time.time() - start))
-start = time.time()
+start_train = time.time()
 i = all_time = dev_time = all_tagged = this_tagged = this_loss = 0
 
 for ITER in range(100):
   random.shuffle(train)
+  start = time.time()
   for s in train:
     i += 1
     if i % 500 == 0:   # print status
-      print(this_loss / this_tagged)
+      print('Updates so far: %d Loss: %f wps: %f' % (i - 1, this_loss / this_tagged, this_tagged/(time.time() - start)))
       all_tagged += this_tagged
       this_loss = this_tagged = 0
-      all_time = time.time() - start
+      all_time = time.time() - start_train
+      start = time.time()
     if i % 10000 == 0 or all_time > args.TIMEOUT: # eval on dev
       dev_start = time.time()
       good_sent = bad_sent = good = bad = 0.0
       for sent in test:
         x_in = [vw.w2i[w] if wc[w]>5 else UNK for w,_ in sent]
         golds_in = [vt.w2i[t] for _,t in sent]
-        log_probs = sess.run(mlp_output, feed_dict={words_in: x_in, golds: golds_in, sent_len: [len(sent)]})
+        # log_probs = sess.run(mlp_output, feed_dict={words_in: x_in, golds: golds_in, sent_len: [len(sent)]})
+        log_probs = mlp_output.eval(feed_dict={words_in: x_in, golds: golds_in, sent_len: [len(sent)]}, session=sess)
         tags = get_tags(log_probs)
         if tags == golds_in: good_sent += 1
         else: bad_sent += 1
@@ -160,8 +162,9 @@ for ITER in range(100):
           if go == gu: good += 1
           else: bad += 1
       dev_time += time.time() - dev_start
-      train_time = time.time() - start - dev_time
+      train_time = time.time() - start_train - dev_time
       print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), train_time, all_tagged/train_time))
+      start = start + (time.time() - dev_start)
       if all_time > args.TIMEOUT:
         sys.exit(0)        
     # train on sent         

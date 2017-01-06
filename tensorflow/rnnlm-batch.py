@@ -134,7 +134,7 @@ for ITER in range(10):
         x_lens_in = [len(example) for example in t_examples]
         x_in = [pad(example, S, max(x_lens_in)) for example in t_examples]
         test_loss = sess.run(loss, feed_dict={x_input: x_in, x_lens: x_lens_in})
-        tot_words = sum(x_lens_in) # - len(x_lens_in) # Subtract out <s> from the denominator - to be in line with other toolkits
+        tot_words = sum(x_lens_in) - len(x_lens_in) # Subtract out <s> from the denominator - to be in line with other toolkits
         test_losses.append(test_loss * tot_words)
         test_words += tot_words
       nll = sum(test_losses) / test_words
@@ -150,6 +150,6 @@ for ITER in range(10):
     if x_lens_in.count(x_lens_in[0])!=len(x_lens_in): x_in = [pad(example, S, max(x_lens_in)) for example in examples]
     else: x_in = examples
     train_loss, _ = sess.run([loss, optimizer], feed_dict={x_input: x_in, x_lens: x_lens_in})
-    tot_words = sum(x_lens_in) # - len(x_lens_in) # Subtract out <s> from the denominator
+    tot_words = sum(x_lens_in) - len(x_lens_in) # Subtract out <s> from the denominator
     train_losses.append(train_loss * tot_words)
     train_words += tot_words

@@ -25,7 +25,9 @@ args = parser.parse_args()
 
 if args.chainer_gpu >= 0:
   # use GPU
-  from chainer.cuda import cupy as xp, get_device
+  import cupy as xp
+  from chainer.cuda import get_device
+  # from chainer.cuda import cupy as xp, get_device
   get_device(args.chainer_gpu).use()
 else:
   # use CPU
@@ -57,7 +59,7 @@ def read(fname):
   Read a POS-tagged file where each line is of the form "word1|tag2 word2|tag2 ..."
   Yields lists of the form [(word1,tag1), (word2,tag2), ...]
   """
-  with file(fname) as fh:
+  with open(fname) as fh:
     for line in fh:
       line = line.strip().split()
       sent = [tuple(x.rsplit("|",1)) for x in line]
@@ -98,7 +100,8 @@ class Tagger(Chain):
     )
 
   def word_rep(self, w):
-    return self.embed(makevar(vw.w2i[w] if wc[w] > 5 else UNK))
+    val = vw.w2i[w] if wc[w] > 5 else UNK
+    return self.embed(makevar(val))
 
   def build_tagging_graph(self, words):
     #initialize the RNNs
@@ -129,10 +132,14 @@ class Tagger(Chain):
 
   def tag_sent(self, words):
     vecs = self.build_tagging_graph(words)
-    tags = [vt.i2w[v.data.argmax()] for v in vecs]
+    tags = [vt.i2w[int(v.data.argmax())] for v in vecs]
     return zip(words, tags)
 
 tagger = Tagger()
+
+if args.chainer_gpu >= 0:
+  tagger.to_gpu()
+
 trainer = O.Adam()
 trainer.use_cleargrads()
 trainer.setup(tagger)
@@ -165,7 +172,7 @@ for ITER in xrange(100):
             good += 1
           else:
             bad += 1
-      dev_time += time.time() - dev_start 
+      dev_time += time.time() - dev_start
       train_time = time.time() - start - dev_time
       print ("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), train_time, all_tagged/train_time))
       if all_time > args.TIMEOUT:
