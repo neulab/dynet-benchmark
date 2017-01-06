@@ -150,7 +150,7 @@ class Tagger(Chain):
 
   def tag_sent(self, words):
     vecs = self.build_tagging_graph(words)
-    tags = [vt.i2w[v.data.argmax()] for v in vecs]
+    tags = [vt.i2w[int(v.data.argmax())] for v in vecs]
     return zip(words, tags)
 
 tagger = Tagger()
