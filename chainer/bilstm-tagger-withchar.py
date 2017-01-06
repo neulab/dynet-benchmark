@@ -154,6 +154,10 @@ class Tagger(Chain):
     return zip(words, tags)
 
 tagger = Tagger()
+
+if chainer_gpu >= 0:
+  tagger.to_gpu()
+
 trainer = O.Adam()
 trainer.use_cleargrads()
 trainer.setup(tagger)
