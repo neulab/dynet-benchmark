@@ -26,15 +26,13 @@ args = parser.parse_args()
 if args.chainer_gpu >= 0:
   # use GPU
   from chainer.cuda import cupy as xp, get_device
-  import numpy as np
   get_device(args.chainer_gpu).use()
 else:
   # use CPU
   import numpy as xp
-  import numpy as np
 
 def makevar(x):
-  return Variable(np.array([x], dtype=np.int32))
+  return Variable(xp.array([x], dtype=xp.int32))
 
 # format of files: each line is "word1|tag2 word2|tag2 ..."
 train_file="data/tags/train.txt"
@@ -59,7 +57,7 @@ def read(fname):
   Read a POS-tagged file where each line is of the form "word1|tag2 word2|tag2 ..."
   Yields lists of the form [(word1,tag1), (word2,tag2), ...]
   """
-  with file(fname) as fh:
+  with open(fname) as fh:
     for line in fh:
       line = line.strip().split()
       sent = [tuple(x.rsplit("|",1)) for x in line]
@@ -188,7 +186,7 @@ for ITER in xrange(100):
             good += 1
           else:
             bad += 1
-      dev_time += time.time() - dev_start 
+      dev_time += time.time() - dev_start
       train_time = time.time() - start - dev_time
       print("tag_acc=%.4f, sent_acc=%.4f, time=%.4f, word_per_sec=%.4f" % (good/(good+bad), good_sent/(good_sent+bad_sent), train_time, all_tagged/train_time))
       if all_time > args.TIMEOUT:
