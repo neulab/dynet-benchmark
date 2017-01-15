@@ -1,5 +1,6 @@
 DyNet Benchmarks
 ----------------
+by Graham Neubig, Yoav Goldberg, Chaitanya Malaviya, Austin Matthews, Yusuke Oda, and Pengcheng Yin
 
 These are benchmarks to compare [DyNet](http://github.com/clab/dynet) against several other neural network toolkits: TensorFlow, Theano, and Chainer. It covers four different natural language processing tasks, some of which are only implemented in a subset of the toolkits as they wouldn't be straightforward to implement in the others:
 
@@ -11,4 +12,3 @@ These are benchmarks to compare [DyNet](http://github.com/clab/dynet) against se
 The benchmarks can be run by first compiling the `dynet-cpp` examples, then running run-tests.sh.
 
 **Note:** `dynet-cpp` needs the sequence-ops branch of DyNet to compile.
-
