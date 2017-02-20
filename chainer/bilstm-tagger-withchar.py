@@ -155,7 +155,7 @@ class Tagger(Chain):
 
 tagger = Tagger()
 
-if chainer_gpu >= 0:
+if args.chainer_gpu >= 0:
   tagger.to_gpu()
 
 trainer = O.Adam()
