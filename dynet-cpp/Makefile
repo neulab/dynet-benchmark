@@ -16,9 +16,13 @@ else
   CXX_FLAGS=-std=c++11 -I${EIGEN_PATH} -I${DYNET_PATH} -L${DYNET_PATH}/build/dynet -DBOOST_REGEX -lboost_regex -Ofast
 endif
 
-all: rnnlm-batch rnnlm-seq treenn bilstm-tagger bilstm-tagger-withchar
+# The -seq version is commented out for compatibility with master. If using the sequence-ops
+# branch you can compile this program as well
+# all: rnnlm-batch rnnlm-seq treenn bilstm-tagger bilstm-tagger-withchar
+all: rnnlm-batch treenn bilstm-tagger bilstm-tagger-withchar
 
-gpu: rnnlm-batch-gpu rnnlm-seq-gpu treenn-gpu bilstm-tagger-gpu bilstm-tagger-withchar-gpu
+# gpu: rnnlm-batch-gpu rnnlm-seq-gpu treenn-gpu bilstm-tagger-gpu bilstm-tagger-withchar-gpu
+gpu: rnnlm-batch-gpu treenn-gpu bilstm-tagger-gpu bilstm-tagger-withchar-gpu
 
 clean:
 	rm -f rnnlm-batch rnnlm-seq treenn bilstm-tagger bilstm-tagger-withchar rnnlm-batch-gpu rnnlm-seq-gpu treenn-gpu bilstm-tagger-gpu bilstm-tagger-withchar-gpu
