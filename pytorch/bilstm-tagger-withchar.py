@@ -127,7 +127,7 @@ class Model(nn.Module):
                     self.lstm_c_r(self.lookup_c(get_var(torch.LongTensor(rev_char_ids).t())))[0]
                 ], 2)
             unk_embeddings = torch.cat([char_embeddings[len(words[j]) + 1, i].unsqueeze(0) for i, j in enumerate(needs_chars)], 0)
-            embeddings.index_add(0, get_var(torch.LongTensor(needs_chars)), unk_embeddings)
+            embeddings = embeddings.index_add(0, get_var(torch.LongTensor(needs_chars)), unk_embeddings)
         return self.proj2(self.proj1(self.lstm(embeddings.unsqueeze(1))[0].squeeze(1)))
 
 
