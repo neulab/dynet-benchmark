@@ -16,9 +16,10 @@ from torch.nn import functional as F
 
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--CEMBED_SIZE', default=32, type=int)
 parser.add_argument('--WEMBED_SIZE', default=128, type=int)
-parser.add_argument('--HIDDEN_SIZE', default=129, type=int)
-parser.add_argument('--MLP_SIZE', default=130, type=int)
+parser.add_argument('--HIDDEN_SIZE', default=256, type=int)
+parser.add_argument('--MLP_SIZE', default=256, type=int)
 parser.add_argument('--TIMEOUT', default=600, type=int)
 parser.add_argument('--CUDA', default=1, type=int)
 args = parser.parse_args()
@@ -63,20 +64,29 @@ train = list(read(train_file))
 dev = list(read(dev_file))
 words = []
 tags = []
+chars = set()
 wc = Counter()
 for sent in train:
     for w, p in sent:
         words.append(w)
         tags.append(p)
         wc[w] += 1
+        chars.update(w)
 words.append("_UNK_")
+chars.add("_UNK_")
+chars.add("<*>")
 
 vw = Vocab.from_corpus([words])
 vt = Vocab.from_corpus([tags])
+vc = Vocab.from_corpus([chars])
 UNK = vw.w2i["_UNK_"]
+CUNK = vc.w2i["_UNK_"]
+pad_char = vc.w2i["<*>"]
+
 nwords = vw.size()
 ntags = vt.size()
-print("nwords=%r, ntags=%r" % (nwords, ntags))
+nchars = vc.size()
+print ("nwords=%r, ntags=%r, nchars=%r" % (nwords, ntags, nchars))
 
 
 def get_var(x, volatile=False):
@@ -88,13 +98,37 @@ class Model(nn.Module):
 
     def __init__(self, args):
         super(Model, self).__init__()
-        self.lookup = nn.Embedding(nwords, args.WEMBED_SIZE)
+        self.lookup_w = nn.Embedding(nwords, args.WEMBED_SIZE, padding_idx=UNK)
+        self.lookup_c = nn.Embedding(nchars, args.CEMBED_SIZE, padding_idx=CUNK)
         self.lstm = nn.LSTM(args.WEMBED_SIZE, args.HIDDEN_SIZE, 1, bidirectional=True)
+        self.lstm_c_f = nn.LSTM(args.CEMBED_SIZE, args.WEMBED_SIZE / 2, 1)
+        self.lstm_c_r = nn.LSTM(args.CEMBED_SIZE, args.WEMBED_SIZE / 2, 1)
         self.proj1 = nn.Linear(2 * args.HIDDEN_SIZE, args.MLP_SIZE)
         self.proj2 = nn.Linear(args.MLP_SIZE, ntags)
 
-    def forward(self, x):
-        return self.proj2(self.proj1(self.lstm(self.lookup(x).unsqueeze(1))[0].squeeze(1)))
+    def forward(self, words, volatile=False):
+        word_ids = []
+        needs_chars = []
+        char_ids = []
+        for i, w in enumerate(words):
+            if wc[w] > 5:
+                word_ids.append(vw.w2i[w])
+            else:
+                word_ids.append(UNK)
+                needs_chars.append(i)
+                char_ids.append([pad_char] + [vc.w2i.get(c, CUNK) for c in w] + [pad_char])
+        embeddings = self.lookup_w(get_var(torch.LongTensor(word_ids), volatile=volatile))
+        if needs_chars:
+            max_len = max(len(x) for x in char_ids)
+            fwd_char_ids = [ids + [pad_char for _ in range(max_len - len(ids))] for ids in char_ids]
+            rev_char_ids = [ids[::-1] + [pad_char for _ in range(max_len - len(ids))] for ids in char_ids]
+            char_embeddings = torch.cat([
+                    self.lstm_c_f(self.lookup_c(get_var(torch.LongTensor(fwd_char_ids).t())))[0],
+                    self.lstm_c_r(self.lookup_c(get_var(torch.LongTensor(rev_char_ids).t())))[0]
+                ], 2)
+            unk_embeddings = torch.cat([char_embeddings[len(words[j]) + 1, i].unsqueeze(0) for i, j in enumerate(needs_chars)], 0)
+            embeddings.index_add(0, get_var(torch.LongTensor(needs_chars)), unk_embeddings)
+        return self.proj2(self.proj1(self.lstm(embeddings.unsqueeze(1))[0].squeeze(1)))
 
 
 model = Model(args)
@@ -120,10 +154,9 @@ for ITER in range(100):
             dev_start = time.time()
             good_sent = bad_sent = good = bad = 0.0
             for sent in dev:
-                words = [vw.w2i[w] if wc[w] > 5 else UNK for w, _ in sent]
-                golds = [t for w, t in sent]
-                tags = [vt.i2w[i] for i in model(get_var(torch.LongTensor(words), volatile=True)).max(1)[1].cpu().data.view(-1)]
-                if tags == golds: good_sent += 1
+                words, golds = zip(*sent)
+                tags = [vt.i2w[i] for i in model(words, volatile=True).max(1)[1].cpu().data.view(-1)]
+                if tags == list(golds): good_sent += 1
                 else: bad_sent += 1
                 for go, gu in zip(golds, tags):
                     if go == gu: good += 1
@@ -134,10 +167,9 @@ for ITER in range(100):
             if all_time > args.TIMEOUT:
                 sys.exit(0)
         # batch / loss
-        words = [vw.w2i[w] if wc[w] > 5 else UNK for w, _ in s]
-        golds = [vt.w2i[t] for _, t in s]
-        preds = model(get_var(torch.LongTensor(words)))
-        loss = F.cross_entropy(preds, get_var(torch.LongTensor(golds)))
+        words, golds = zip(*s)
+        preds = model(words)
+        loss = F.cross_entropy(preds, get_var(torch.LongTensor([vt.w2i[t] for t in golds])))
         # log / optim
         this_loss += loss.data[0]
         this_tagged += len(golds)

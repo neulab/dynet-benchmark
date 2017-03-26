@@ -17,8 +17,8 @@ from torch.nn import functional as F
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--WEMBED_SIZE', default=128, type=int)
-parser.add_argument('--HIDDEN_SIZE', default=129, type=int)
-parser.add_argument('--MLP_SIZE', default=130, type=int)
+parser.add_argument('--HIDDEN_SIZE', default=256, type=int)
+parser.add_argument('--MLP_SIZE', default=256, type=int)
 parser.add_argument('--TIMEOUT', default=600, type=int)
 parser.add_argument('--CUDA', default=1, type=int)
 args = parser.parse_args()
