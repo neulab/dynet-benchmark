@@ -16,9 +16,6 @@ from torch.nn import functional as F
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--dynet-seed", default=0, type=int)
-parser.add_argument("--dynet-gpus", default=0, type=int)
-parser.add_argument("--dynet-mem", default=512, type=int)
 parser.add_argument('--WEMBED_SIZE', default=128, type=int)
 parser.add_argument('--HIDDEN_SIZE', default=129, type=int)
 parser.add_argument('--MLP_SIZE', default=130, type=int)
@@ -119,7 +116,7 @@ for ITER in range(100):
             all_tagged += this_tagged
             this_loss = this_tagged = 0
             all_time = time.time() - start
-        if i % 500 == 0 or all_time > args.TIMEOUT: # eval on dev
+        if i % 10000 == 0 or all_time > args.TIMEOUT:  # eval on dev
             dev_start = time.time()
             good_sent = bad_sent = good = bad = 0.0
             for sent in dev:
