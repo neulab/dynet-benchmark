@@ -16,17 +16,18 @@ from torch.nn import functional as F
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--WEMBED_SIZE', default=128, type=int)
-parser.add_argument('--HIDDEN_SIZE', default=256, type=int)
-parser.add_argument('--MLP_SIZE', default=256, type=int)
-parser.add_argument('--TIMEOUT', default=600, type=int)
-parser.add_argument('--CUDA', default=1, type=int)
+parser.add_argument('WEMBED_SIZE', type=int)
+parser.add_argument('HIDDEN_SIZE', type=int)
+parser.add_argument('MLP_SIZE', type=int)
+parser.add_argument('SPARSE', type=int)
+parser.add_argument('TIMEOUT', type=int)
+parser.add_argument('--CUDA', default=-1, type=int)
 args = parser.parse_args()
 
 
 # format of files: each line is "word1|tag2 word2|tag2 ..."
-train_file = "/home/guismay/projects/dynet-benchmark/data/tags/train.txt"
-dev_file = "/home/guismay/projects/dynet-benchmark/data/tags/dev.txt"
+train_file = "data/tags/train.txt"
+dev_file = "data/tags/dev.txt"
 
 
 class Vocab:
@@ -139,7 +140,7 @@ for ITER in range(100):
         preds = model(get_var(torch.LongTensor(words)))
         loss = F.cross_entropy(preds, get_var(torch.LongTensor(golds)))
         # log / optim
-        this_loss += loss.data[0]
+        this_loss += loss.data[0]*len(golds)
         this_tagged += len(golds)
         optimizer.zero_grad()
         loss.backward()
