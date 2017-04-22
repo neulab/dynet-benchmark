@@ -15,16 +15,16 @@ from torch.autograd import Variable
 start = time.time()
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--MB_SIZE', type=int, default=32, help='minibatch size')
-parser.add_argument('--EMBED_SIZE', type=int, default=128, help='embedding size')
-parser.add_argument('--HIDDEN_SIZE', type=int, default=256, help='hidden size')
-parser.add_argument('--SPARSE', type=int, default=0, help='sparse update 0/1')
-parser.add_argument('--TIMEOUT', type=int, default=100000, help='timeout in seconds')
-parser.add_argument('--CUDA', type=int, default=1, help='use CUDA')
+parser.add_argument('MB_SIZE', type=int, help='minibatch size')
+parser.add_argument('EMBED_SIZE', type=int, help='embedding size')
+parser.add_argument('HIDDEN_SIZE', type=int, help='hidden size')
+parser.add_argument('SPARSE', type=int, help='sparse update 0/1')
+parser.add_argument('TIMEOUT', type=int, help='timeout in seconds')
+parser.add_argument('--CUDA', type=int, default=-1, help='use CUDA')
 args = parser.parse_args()
 
-train_file = '/home/guismay/notebooks/benchmarks/dynet-benchmark/data/text/train.txt'
-test_file = '/home/guismay/notebooks/benchmarks/dynet-benchmark/data/text/dev.txt'
+train_file = 'data/text/train.txt'
+test_file = 'data/text/dev.txt'
 
 def read(fname):
     """
