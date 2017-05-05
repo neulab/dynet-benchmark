@@ -227,9 +227,9 @@ int main(int argc, char**argv) {
       }
       Expression loss = sum(losses);
       cg.forward(loss);
-      // this_loss += as_scalar(loss.value());
-      // cg.backward(loss);
-      // trainer.update();
+      this_loss += as_scalar(loss.value());
+      cg.backward(loss);
+      trainer.update();
       if(i % 1000 == 0) {
         trainer.status();
         cout << this_loss / this_nodes << endl;
@@ -240,15 +240,15 @@ int main(int argc, char**argv) {
     all_time += duration_cast<milliseconds>(fs).count() / float(1000);
     trainer.update_epoch(1.0);
     int good = 0, bad = 0;
-    // for(auto tree : dev) {
-    //   ComputationGraph cg;
-    //   builder.start_graph(cg);
-    //   Expression W = parameter(cg, W_param);
-    //   pair<Expression,Expression> hc = builder.expr_for_tree(*tree, false);
-    //   vector<float> scores = as_vector((W*hc.first).value());
-    //   size_t max_id = std::distance(scores.begin(), std::max_element(scores.begin(), scores.end()));
-    //   (nonterm_voc.convert(max_id) == tree->label ? good : bad)++;
-    // }
+    for(auto tree : dev) {
+      ComputationGraph cg;
+      builder.start_graph(cg);
+      Expression W = parameter(cg, W_param);
+      pair<Expression,Expression> hc = builder.expr_for_tree(*tree, false);
+      vector<float> scores = as_vector((W*hc.first).value());
+      size_t max_id = std::distance(scores.begin(), std::max_element(scores.begin(), scores.end()));
+      (nonterm_voc.convert(max_id) == tree->label ? good : bad)++;
+    }
     cout << "acc=" << good/float(good+bad) << ", time=" << all_time << ", sent_per_sec=" << i/all_time << endl;
     if(all_time > TIMEOUT)
       exit(0);
