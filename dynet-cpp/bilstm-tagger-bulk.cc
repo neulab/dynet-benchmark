@@ -168,20 +168,21 @@ int main(int argc, char**argv) {
   // Do training
   shuffle(train.begin(), train.end(), *dynet::rndeng);
   start = system_clock::now();
-  int i = 0, all_tagged = 0, this_words = 0;
+  int i = 0, bi = 0, all_tagged = 0, this_words = 0;
   float this_loss = 0.f, all_time = 0.f;
   unsigned batch = BATCH_SIZE;
   for(int iter = 0; iter < 100; iter++) {
     for(size_t id1 = 0; id1 <= train.size()-batch; id1 += batch) {
       i += batch;
-      if(i % 500 == 0) {
+      bi++;
+      if(bi % (500/BATCH_SIZE) == 0) {
         trainer.status();
         cout << this_loss/this_words << endl;
         all_tagged += this_words;
         this_loss = 0.f;
         this_words = 0;
       }
-      if(i % 5000 == 0) {
+      if(bi % (5000/BATCH_SIZE) == 0) {
         duration<float> fs = (system_clock::now() - start);
         all_time += duration_cast<milliseconds>(fs).count() / float(1000);
         int dev_words = 0, dev_good = 0;

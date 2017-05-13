@@ -209,7 +209,7 @@ int main(int argc, char**argv) {
 
   shuffle(train.begin(), train.end(), *dynet::rndeng);
   start = system_clock::now();
-  int i = 0, all_tagged = 0, this_nodes = 0;
+  int i = 0, bi = 0, all_tagged = 0, this_nodes = 0;
   float this_loss = 0.f, all_time = 0.f;
   for(int iter = 0; iter < 100; iter++) {
     size_t batch = BATCH_SIZE;
@@ -235,7 +235,8 @@ int main(int argc, char**argv) {
         if(LAST_STEP > 1)
           trainer.update();
       }
-      if(i % 1000 == 0) {
+      bi++;
+      if(bi % (1000/BATCH_SIZE) == 0) {
         trainer.status();
         cout << this_loss / this_nodes << endl;
         this_loss = 0; this_nodes = 0;

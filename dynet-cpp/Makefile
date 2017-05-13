@@ -1,11 +1,11 @@
 
 
-CUDA_PATH=/usr/local/cuda-7.5
+CUDA_PATH=/usr/local/cuda-8.0/targets/x86_64-linux/lib
 EIGEN_PATH=${HOME}/usr/local/eigen
 DYNET_PATH=${HOME}/work/dynet
 
 DYNET_LIB_CPU=-ldynet
-DYNET_LIB_GPU=-lgdynet -L${CUDA_PATH}/lib64 -lcublas -lcudart
+DYNET_LIB_GPU=-lgdynet -L${CUDA_PATH} -lcublas -lcudart
 
 # *** Mac or linux
 UNAME_S := $(shell uname -s)
