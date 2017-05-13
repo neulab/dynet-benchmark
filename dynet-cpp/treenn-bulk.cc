@@ -186,14 +186,16 @@ int main(int argc, char**argv) {
   AdamTrainer trainer(model, 0.001);
   trainer.clipping_enabled = false;
 
-  if(argc != 5) {
-    cerr << "Usage: " << argv[0] << " WEMBED_SIZE HIDDEN_SIZE SPARSE TIMEOUT" << endl;
+  if(argc != 7) {
+    cerr << "Usage: " << argv[0] << " WEMBED_SIZE HIDDEN_SIZE SPARSE BATCH_SIZE LAST_STEP TIMEOUT" << endl;
     return 1;
   }
   unsigned WEMBED_SIZE = atoi(argv[1]);
   unsigned HIDDEN_SIZE = atoi(argv[2]);
   trainer.sparse_updates_enabled = atoi(argv[3]);
-  int TIMEOUT = atoi(argv[4]);
+  int BATCH_SIZE = atoi(argv[4]);
+  int LAST_STEP = atoi(argv[5]);
+  int TIMEOUT = atoi(argv[6]);
 
   // Builder
   Parameter W_param = model.add_parameters({nonterm_voc.size(), HIDDEN_SIZE});
@@ -205,12 +207,12 @@ int main(int argc, char**argv) {
     cout << "startup time: " << startup_time << endl;
   }
 
+  shuffle(train.begin(), train.end(), *dynet::rndeng);
+  start = system_clock::now();
   int i = 0, all_tagged = 0, this_nodes = 0;
   float this_loss = 0.f, all_time = 0.f;
   for(int iter = 0; iter < 100; iter++) {
-    shuffle(train.begin(), train.end(), *dynet::rndeng);
-    start = system_clock::now();
-    size_t batch = 50;
+    size_t batch = BATCH_SIZE;
     for(size_t j1 = 0; j1 <= train.size()-batch; j1 += batch) {
       ComputationGraph cg;
       builder.start_graph(cg);
@@ -228,8 +230,11 @@ int main(int argc, char**argv) {
       Expression loss = sum(losses);
       cg.forward(loss);
       this_loss += as_scalar(loss.value());
-      cg.backward(loss);
-      trainer.update();
+      if(LAST_STEP > 0) {
+        cg.backward(loss);
+        if(LAST_STEP > 1)
+          trainer.update();
+      }
       if(i % 1000 == 0) {
         trainer.status();
         cout << this_loss / this_nodes << endl;

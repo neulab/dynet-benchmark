@@ -7,11 +7,15 @@ dynet-cpp/rnnlm-seq
 dynet-cpp/treenn
 dynet-cpp/treenn-bulk
 dynet-cpp/bilstm-tagger
+dynet-cpp/bilstm-tagger-bulk
 dynet-cpp/bilstm-tagger-withchar
+dynet-cpp/bilstm-tagger-withchar-bulk
 dynet-cpp/rnnlm-batch-gpu
 dynet-cpp/rnnlm-seq-gpu
 dynet-cpp/treenn-gpu
 dynet-cpp/treenn-bulk-gpu
 dynet-cpp/bilstm-tagger-gpu
+dynet-cpp/bilstm-tagger-bulk-gpu
 dynet-cpp/bilstm-tagger-withchar-gpu
+dynet-cpp/bilstm-tagger-withchar-bulk-gpu
 dynet-benchmark-results*.tar.gz
