@@ -69,6 +69,19 @@ public:
   LookupParameter word_lookup, char_lookup;
   Parameter p_t1, pH, pO;
   VanillaLSTMBuilder fwdRNN, bwdRNN, cFwdRNN, cBwdRNN;
+  Expression H, O;
+
+  void init(ComputationGraph & cg) {
+    // parameters -> expressions
+    H = parameter(cg, pH);
+    O = parameter(cg, pO);
+
+    // initialize the RNNs
+    fwdRNN.new_graph(cg);
+    bwdRNN.new_graph(cg);
+    cFwdRNN.new_graph(cg);
+    cBwdRNN.new_graph(cg);
+  }
 
   // Do word representation
   Expression word_rep(ComputationGraph & cg, const string & w) {
@@ -88,15 +101,6 @@ public:
   }
 
   vector<Expression> build_tagging_graph(ComputationGraph & cg, const vector<string> & words) {
-    // parameters -> expressions
-    Expression H = parameter(cg, pH);
-    Expression O = parameter(cg, pO);
-
-    // initialize the RNNs
-    fwdRNN.new_graph(cg);
-    bwdRNN.new_graph(cg);
-    cFwdRNN.new_graph(cg);
-    cBwdRNN.new_graph(cg);
 
     // get the word vectors. word_rep(...) returns a 128-dim vector expression for each word.
     vector<Expression> wembs(words.size()), fwds(words.size()), bwds(words.size()), fbwds(words.size());
@@ -125,6 +129,7 @@ public:
 
   vector<string> tag_sent(vector<string> & words) {
     ComputationGraph cg;
+    init(cg);
     vector<Expression> exprs = build_tagging_graph(cg, words), errs(words.size());
     vector<string> tags(words.size());
     for(size_t i = 0; i < words.size(); ++i) {
@@ -223,6 +228,7 @@ int main(int argc, char**argv) {
       }
 
       ComputationGraph cg;
+      tagger.init(cg);
       vector<Expression> losses;
       for(size_t id2 = 0; id2 < batch; ++id2) {
         auto & s = train[id1+id2];
