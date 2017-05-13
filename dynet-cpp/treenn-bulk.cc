@@ -208,11 +208,11 @@ int main(int argc, char**argv) {
   }
 
   shuffle(train.begin(), train.end(), *dynet::rndeng);
-  start = system_clock::now();
   int i = 0, bi = 0, all_tagged = 0, this_nodes = 0;
   float this_loss = 0.f, all_time = 0.f;
   for(int iter = 0; iter < 100; iter++) {
     size_t batch = BATCH_SIZE;
+    start = system_clock::now();
     for(size_t j1 = 0; j1 <= train.size()-batch; j1 += batch) {
       ComputationGraph cg;
       builder.start_graph(cg);
@@ -255,7 +255,7 @@ int main(int argc, char**argv) {
       size_t max_id = std::distance(scores.begin(), std::max_element(scores.begin(), scores.end()));
       (nonterm_voc.convert(max_id) == tree->label ? good : bad)++;
     }
-    cout << "acc=" << good/float(good+bad) << ", time=" << all_time << ", sent_per_sec=" << i/all_time << endl;
+    cout << "acc=" << good/float(good+bad) << ", time=" << all_time << ", sent_per_sec=" << i/all_time << ", sec_per_sent=" << all_time/i << endl;
     if(all_time > TIMEOUT)
       exit(0);
   }
