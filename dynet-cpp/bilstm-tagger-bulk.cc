@@ -201,7 +201,7 @@ int main(int argc, char**argv) {
               dev_good++;
           dev_words += sent.second.size();
         }
-        cout << "acc=" << dev_good/float(dev_words) << ", time=" << all_time << ", word_per_sec=" << all_tagged/all_time << endl;
+        cout << "acc=" << dev_good/float(dev_words) << ", time=" << all_time << ", word_per_sec=" << all_tagged/all_time << ", sent_per_sec=" << i/all_time << ", sec_per_sent=" << all_time/i << endl;
         if(all_time > TIMEOUT)
           exit(0);
         start = system_clock::now();

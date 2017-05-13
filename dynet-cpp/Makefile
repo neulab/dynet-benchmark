@@ -18,7 +18,7 @@ endif
 
 all: rnnlm-batch treenn treenn-bulk bilstm-tagger bilstm-tagger-bulk bilstm-tagger-withchar bilstm-tagger-withchar-bulk
 
-gpu: rnnlm-batch-gpu treenn-gpu treenn-bulk-gpu bilstm-tagger-gpu bilstm-tagger-bulk-gpu bilstm-tagger-withchar-gpu bilstm-tagger-withchar-bulk
+gpu: rnnlm-batch-gpu treenn-gpu treenn-bulk-gpu bilstm-tagger-gpu bilstm-tagger-bulk-gpu bilstm-tagger-withchar-gpu bilstm-tagger-withchar-bulk-gpu
 
 clean:
 	rm -f rnnlm-batch treenn treenn-bulk bilstm-tagger bilstm-tagger-bulk bilstm-tagger-withchar bilstm-tagger-withchar-bulk rnnlm-batch-gpu treenn-gpu treenn-bulk-gpu bilstm-tagger-gpu bilstm-tagger-bulk-gpu bilstm-tagger-withchar-gpu bilstm-tagger-withchar-bulk-gpu
