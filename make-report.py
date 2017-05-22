@@ -104,13 +104,15 @@ def format_num(num):
     val = "%.f" % float(val)
   return val
 
-def getmaxstat(task, device, toolkit, setting, stat):
+def getmaxstat(task, device, toolkit, setting, stat, mult=1):
   my_stats = []
   for trial in range(1,4):
     my_id = (task, device, toolkit, setting, trial)
     if my_id in stats and stat in stats[my_id]:
-      my_stats.append(stats[my_id][stat])
-  return format_num(max(my_stats)) if len(my_stats) > 0 else "TODO"
+      my_stats.append(mult*stats[my_id][stat])
+  return format_num(mult*max(my_stats)) if len(my_stats) > 0 else "TODO"
+def getminstat(task, device, toolkit, setting, stat):
+  return getmaxstat(task, device ,toolkit, setting, stat, mult=-1)
 
 ###### First section: toolkit comparison
 
@@ -120,9 +122,12 @@ tasks = [
   ("RNNLM (MB=4)",  "rnnlm-batch", "ms04-es128-hs256-sp0"),
   ("RNNLM (MB=16)", "rnnlm-batch", "ms16-es128-hs256-sp0"),
   ("RNNLM (MB=64)", "rnnlm-batch", "ms64-es128-hs256-sp0"),
-  ("BiLSTM Tagger", "bilstm-tagger", "ws128-hs50-mlps32-su0"),
-  ("BiLSTM Tagger w/Char", "bilstm-tagger-withchar", "cs20-ws128-hs50-mlps32-su0"),
+  ("BiLSTM Tag", "bilstm-tagger", "ws128-hs50-mlps32-su0"),
+  ("BiLSTM Tag +sparse", "bilstm-tagger", "ws128-hs50-mlps32-su1"),
+  ("BiLSTM Tag+Char", "bilstm-tagger-withchar", "cs20-ws128-hs50-mlps32-su0"),
+  ("BiLSTM Tag+Char +sparse", "bilstm-tagger-withchar", "cs20-ws128-hs50-mlps32-su1"),
   ("TreeLSTM", "treenn", "ws128-hs128-su0"),
+  ("TreeLSTM +sparse", "treenn", "ws128-hs128-su1"),
 ]
 def make_speed_table(device):
   print("\\begin{table}")
@@ -144,6 +149,30 @@ def make_speed_table(device):
 make_speed_table("cpu")
 make_speed_table("gpu")
 
+# Startup time table
+tasks = [
+  ("RNNLM", "rnnlm-batch", "ms01-es128-hs256-sp0"),
+  ("BiLSTM Tag", "bilstm-tagger", "ws128-hs50-mlps32-su0"),
+  ("BiLSTM Tag+Char", "bilstm-tagger-withchar", "cs20-ws128-hs50-mlps32-su0"),
+  ("TreeLSTM", "treenn", "ws128-hs128-su0"),
+]
+print("\\begin{table}")
+print("\\begin{tabular}{c|rrr|rrr}")
+print(" & "+" & ".join([prettyname[x] for x in toolkits])+" \\\\ \hline")
+for name, task, setting in tasks:
+  cols = [name]
+  for i, toolkit in enumerate(toolkits):
+    if (toolkit, task) in taskna:
+      cols.append("\\multicolumn{1}{c}{-}")
+    else:
+      cols.append(getminstat(task, device, toolkit, setting, "startup"))
+  print(" & ".join(cols)+" \\\\")
+print("\\end{tabular}")
+print("\\caption{Startup time for programs written in each toolkit.}")
+print("\\label{tab:startup}")
+print("\\end{table}")
+print("")
+
 # Code complexities
 def get_code_complexity(toolkit, task):
   chars = 0
@@ -162,8 +191,8 @@ def get_code_complexity(toolkit, task):
 
 tasks = [
   ("RNNLM", "rnnlm-batch"),
-  ("BiLSTM Tagger", "bilstm-tagger"),
-  ("BiLSTM Tagger w/Char", "bilstm-tagger-withchar"),
+  ("BiLSTM Tag", "bilstm-tagger"),
+  ("BiLSTM Tag+Char", "bilstm-tagger-withchar"),
   ("TreeLSTM", "treenn"),
 ]
 print("\\begin{table}")
@@ -188,8 +217,8 @@ print("")
 tasks = [
   ("RNNLM (MB=1) ", "rnnlm-batch", "ms01-es128-hs256-sp"),
   ("RNNLM (MB=16)", "rnnlm-batch", "ms16-es128-hs256-sp"),
-  ("BiLSTM Tagger", "bilstm-tagger", "ws128-hs50-mlps32-su"),
-  ("BiLSTM Tagger w/Char", "bilstm-tagger-withchar", "cs20-ws128-hs50-mlps32-su"),
+  ("BiLSTM Tag", "bilstm-tagger", "ws128-hs50-mlps32-su"),
+  ("BiLSTM Tag+Char", "bilstm-tagger-withchar", "cs20-ws128-hs50-mlps32-su"),
   ("TreeLSTM", "treenn", "ws128-hs128-su"),
 ]
 print("\\begin{table}")
