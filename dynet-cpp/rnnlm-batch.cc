@@ -11,11 +11,11 @@
 #include <dynet/expr.h>
 #include <dynet/lstm.h>
 #include <dynet/training.h>
+#include <dynet/param-init.h>
 
 using namespace std;
 using namespace std::chrono;
 using namespace dynet;
-using namespace dynet::expr;
 
 // Read a file where each line is of the form "word1 word2 ..."
 // Yields lists of the form [word1, word2, ...]
