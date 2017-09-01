@@ -15,7 +15,6 @@
 using namespace std;
 using namespace std::chrono;
 using namespace dynet;
-using namespace dynet::expr;
 
 // Read a file where each line is of the form "word1 word2 ..."
 // Yields lists of the form [word1, word2, ...]
@@ -40,7 +39,7 @@ struct RNNLanguageModel {
   Parameter W_sm;
   Parameter b_sm;
   VanillaLSTMBuilder builder;
-  explicit RNNLanguageModel(unsigned layers, unsigned input_dim, unsigned hidden_dim, unsigned vocab_size, Model& model) : builder(layers, input_dim, hidden_dim, model) {
+  explicit RNNLanguageModel(unsigned layers, unsigned input_dim, unsigned hidden_dim, unsigned vocab_size, ParameterCollection& model) : builder(layers, input_dim, hidden_dim, model) {
     p_c = model.add_lookup_parameters(vocab_size, {input_dim}, ParameterInitUniform(0.1)); 
     W_sm = model.add_parameters({vocab_size, hidden_dim}, ParameterInitUniform(0.5));
     b_sm = model.add_parameters({vocab_size}, ParameterInitUniform(0.5));
@@ -100,7 +99,7 @@ int main(int argc, char** argv) {
 
   // DyNet Starts
   dynet::initialize(argc, argv);
-  Model model;
+  ParameterCollection model;
 
   if(argc != 6) {
     cerr << "Usage: " << argv[0] << " MB_SIZE EMBED_SIZE HIDDEN_SIZE SPARSE TIMEOUT" << endl;
@@ -173,6 +172,5 @@ int main(int argc, char** argv) {
       cg.backward(loss_exp);
       trainer.update();
     }
-    trainer.update_epoch(1.0);
   }
 }

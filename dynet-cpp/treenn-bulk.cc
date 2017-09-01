@@ -16,7 +16,6 @@
 using namespace std;
 using namespace std::chrono;
 using namespace dynet;
-using namespace dynet::expr;
 
 class Tree {
 public:
@@ -103,7 +102,7 @@ vector<Tree*> read_dataset(const string & filename) {
 
 class TreeLSTMBuilder {
 public:
-  TreeLSTMBuilder(Model & model, Dict & word_vocab, unsigned wdim, unsigned hdim) :
+  TreeLSTMBuilder(ParameterCollection & model, Dict & word_vocab, unsigned wdim, unsigned hdim) :
           model(model), word_vocab(word_vocab), wdim(wdim), hdim(hdim) {
     WS = {model.add_parameters({hdim, wdim}), // 0: Wi
           model.add_parameters({hdim, wdim}), // 1: Wo
@@ -158,7 +157,7 @@ public:
     return hc_ret;
   }
 
-  Model & model;
+  ParameterCollection & model;
   Dict & word_vocab;
   unsigned wdim, hdim;
   vector<Parameter> WS;
@@ -173,8 +172,8 @@ int main(int argc, char**argv) {
 
   time_point<system_clock> start = system_clock::now();
 
-  vector<Tree*> train = read_dataset("../data/trees/train.txt");
-  vector<Tree*> dev = read_dataset("../data/trees/dev.txt");
+  vector<Tree*> train = read_dataset("data/trees/train.txt");
+  vector<Tree*> dev = read_dataset("data/trees/dev.txt");
   Dict nonterm_voc, term_voc;
   for(auto tree : train) tree->make_vocab(nonterm_voc, term_voc);
   nonterm_voc.freeze();
@@ -182,7 +181,7 @@ int main(int argc, char**argv) {
 
   // DyNet Starts
   dynet::initialize(argc, argv);
-  Model model;
+  ParameterCollection model;
   AdamTrainer trainer(model, 0.001);
   trainer.clipping_enabled = false;
 
@@ -244,7 +243,6 @@ int main(int argc, char**argv) {
     }
     std::chrono::duration<float> fs = (system_clock::now() - start);
     all_time += duration_cast<milliseconds>(fs).count() / float(1000);
-    trainer.update_epoch(1.0);
     int good = 0, bad = 0;
     for(auto tree : dev) {
       ComputationGraph cg;

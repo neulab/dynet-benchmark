@@ -17,7 +17,6 @@
 using namespace std;
 using namespace std::chrono;
 using namespace dynet;
-using namespace dynet::expr;
 
 // Read a file where each line is of the form "word1|tag1 word2|tag2 ..."
 // Yields pairs of lists of the form < [word1, word2, ...], [tag1, tag2, ...] >
@@ -43,7 +42,7 @@ vector<pair<vector<string>, vector<string> > > read(const string & fname) {
 class BiLSTMTagger {
 public:
 
-  BiLSTMTagger(unsigned layers, unsigned wembed_dim, unsigned hidden_dim, unsigned mlp_dim, Model & model, Dict & wv, Dict & tv, unordered_map<string,int> & wc)
+  BiLSTMTagger(unsigned layers, unsigned wembed_dim, unsigned hidden_dim, unsigned mlp_dim, ParameterCollection & model, Dict & wv, Dict & tv, unordered_map<string,int> & wc)
                         : wv(wv), tv(tv), wc(wc) {
     unsigned nwords = wv.size();
     unsigned ntags  = tv.size();
@@ -129,8 +128,8 @@ int main(int argc, char**argv) {
 
   time_point<system_clock> start = system_clock::now();
 
-  vector<pair<vector<string>, vector<string> > > train = read("../data/tags/train.txt");
-  vector<pair<vector<string>, vector<string> > > dev = read("../data/tags/dev.txt");
+  vector<pair<vector<string>, vector<string> > > train = read("data/tags/train.txt");
+  vector<pair<vector<string>, vector<string> > > dev = read("data/tags/dev.txt");
   Dict word_voc, tag_voc;
   unordered_map<string, int> word_cnt;
   for(auto & sent : train) {
@@ -146,7 +145,7 @@ int main(int argc, char**argv) {
 
   // DyNet Starts
   dynet::initialize(argc, argv);
-  Model model;
+  ParameterCollection model;
   AdamTrainer trainer(model);
   trainer.clipping_enabled = false;
 
@@ -224,7 +223,6 @@ int main(int argc, char**argv) {
           trainer.update();
       }
     }
-    trainer.update_epoch(1.0);
   }
   return 0;
 }
