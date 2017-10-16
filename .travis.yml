@@ -1,0 +1,40 @@
+dist: trusty
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+      - boost-latest
+    packages:
+      - g++-4.8
+      - libboost-regex1.55-dev
+jobs:
+  include:
+    - language: python
+      python: 2.7
+      env: PY=cp27-cp27mu
+    - language: python
+      python: 3.6
+      env: PY=cp36-cp36m
+
+install:
+  - pip install -q chainer http://download.pytorch.org/whl/cu75/torch-0.2.0.post3-$PY-manylinux1_x86_64.whl torchvision tensorflow theano cython numpy
+  - hg clone https://bitbucket.org/eigen/eigen -r 699b659
+  - git clone https://github.com/clab/dynet
+  - export DYNET_PATH=$PWD/dynet EIGEN_PATH=$PWD/eigen
+  - mkdir dynet/build
+  - cd dynet/build
+  - cmake .. -DEIGEN3_INCLUDE_DIR=$TRAVIS_BUILD_DIR/eigen -DPYTHON=$(which python) -DCMAKE_INSTALL_PREFIX=$(dirname $(which python))/..
+  - make -j$(nproc)
+  - cd python
+  - python ../../setup.py build --build-dir=.. --skip-build install
+  - cd $TRAVIS_BUILD_DIR/dynet-cpp
+  - make DYNET_PATH=$DYNET_PATH EIGEN_PATH=$EIGEN_PATH
+  - cd $TRAVIS_BUILD_DIR
+
+script:
+  - env DYFLAGS="--dynet-mem 2048" TIMEOUT=120 LONGTIMEOUT=300 ./run-tests.sh
+  - grep '\(per_sec\|startup\)' log/*/*.log
+
+after_failure:
+  - cat $TRAVIS_BUILD_DIR/log/*/*.log
+

@@ -1,14 +1,14 @@
 #!/bin/bash
 
-export ANACONDA_PATH=$HOME/usr/local/anaconda3/envs/benchmark2
+export PYTHON_PATH={ANACONDA_PATH:-$HOME/usr/local/anaconda3/envs/benchmark2}
 export CUDA_PATH=/usr/local/cuda
-export DYNET_PATH=$HOME/work/dynet
-export LD_LIBRARY_PATH=$DYNET_PATH/build/dynet:$ANACONDA_PATH/lib:$CUDA_PATH/lib64
-export LIBRARY_PATH=$DYNET_PATH/build/dynet:$ANACONDA_PATH/lib:$CUDA_PATH/lib64
+export DYNET_PATH=${DYNET_PATH:-$HOME/work/dynet}
+export LD_LIBRARY_PATH=$DYNET_PATH/build/dynet:$PYTHON_PATH/lib:$CUDA_PATH/lib64
+export LIBRARY_PATH=$DYNET_PATH/build/dynet:$PYTHON_PATH/lib:$CUDA_PATH/lib64
 export PYTHONPATH=$DYNET_PATH/build/python
 PYTHON=python
 
-DYFLAGS="--dynet-mem 4096"
+DYFLAGS=${DYFLAGS:-"--dynet-mem 4096"}
 GPUSUF=
 if [[ $# == 1 ]]; then
   export CUDA_VISIBLE_DEVICES=$1
@@ -21,8 +21,8 @@ else
   CGPU=-1
 fi
 
-TIMEOUT=600
-LONGTIMEOUT=600
+TIMEOUT=${TIMEOUT:-600}
+LONGTIMEOUT=${LONGTIMEOUT:-600}
 
 runcmd() {
   LFILE=log/$2$GPUSUF/$4.log
@@ -44,7 +44,8 @@ runcmd() {
     fi
     mkdir -p log/$2$GPUSUF
     echo "$mycmd $3 $MYTIMEOUT &> $LFILE"
-    eval "$mycmd $3 $MYTIMEOUT &> $LFILE"
+    EXTERNALTIMEOUT=$((MYTIMEOUT+60))
+    timeout $EXTERNALTIMEOUT $mycmd $3 $MYTIMEOUT &> $LFILE
   fi
 }
 
