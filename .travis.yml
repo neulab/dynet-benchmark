@@ -7,17 +7,20 @@ dist: trusty
 #    packages:
 #      - g++-4.8
 #      - libboost-regex1.55-dev
-jobs:
-  include:
-    - language: python
-      python: 2.7
-      env: PY=cp27-cp27mu
-    - language: python
-      python: 3.6
-      env: PY=cp36-cp36m
+language: python
+python:
+  - 2.7
+  - 3.6
+env:
+  - TEST=dynet
+  - TEST=chainer
+  - TEST="http://download.pytorch.org/whl/cu75/torch-0.2.0.post3-`python python-tag-abi-tag.py`-manylinux1_x86_64.whl torchvision"
+  - TEST=tensorflow
+  - TEST=theano
 
 install:
-  - pip install -q dynet chainer http://download.pytorch.org/whl/cu75/torch-0.2.0.post3-$PY-manylinux1_x86_64.whl torchvision tensorflow theano cython numpy
+  - pip install -q cython numpy
+  - pip install -q $TEST
 #  - hg clone https://bitbucket.org/eigen/eigen -r 699b659
 #  - git clone https://github.com/clab/dynet
 #  - export DYNET_PATH=$PWD/dynet EIGEN_PATH=$PWD/eigen
