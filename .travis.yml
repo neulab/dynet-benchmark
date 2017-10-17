@@ -32,7 +32,7 @@ install:
 #  - cd $TRAVIS_BUILD_DIR
 
 script:
-  - env DYFLAGS="--dynet-mem 2048" TIMEOUT=120 LONGTIMEOUT=300 ./run-tests.sh
+  - env DYFLAGS="--dynet-mem 2048" TIMEOUT=30 LONGTIMEOUT=60 ./run-tests.sh
   - grep '\(per_sec\|startup\)' log/*/*.log
 
 after_failure:
