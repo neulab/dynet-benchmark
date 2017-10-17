@@ -95,7 +95,7 @@ class Model(nn.Module):
         self.proj2 = nn.Linear(args.MLP_SIZE, ntags)
 
     def forward(self, x):
-        return self.proj2(self.proj1(self.lstm(self.lookup(x).unsqueeze(1))[0].squeeze(1)))
+        return nn.functional.softmax(nn.functional.tanh(self.proj2(self.proj1(self.lstm(self.lookup(x).unsqueeze(1))[0].squeeze(1)))))
 
 
 model = Model(args)
