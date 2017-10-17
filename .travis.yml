@@ -32,8 +32,10 @@ matrix:
         - make DYNET_PATH=$DYNET_PATH EIGEN_PATH=$EIGEN_PATH
         - cd $TRAVIS_BUILD_DIR
 
-install:
+before_install:
   - pip install -q cython numpy
+
+install:
   - pip install $TEST
 
 script:
