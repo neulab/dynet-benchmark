@@ -8,7 +8,7 @@ env:
   - TEST=theano
 matrix:
   include:
-    - language: cpp
+    - env: TEST=dynet-cpp
       addons:
         apt:
           sources:
