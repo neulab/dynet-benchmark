@@ -5,7 +5,6 @@ python:
 env:
   - TEST=dynet
   - TEST=chainer
-  - TEST=tensorflow
   - TEST=theano
 matrix:
   include:
