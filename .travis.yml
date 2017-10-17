@@ -5,7 +5,6 @@ python:
 env:
   - TEST=dynet
   - TEST=chainer
-  - TEST="http://download.pytorch.org/whl/cu75/torch-0.2.0.post3-`python python-tag-abi-tag.py`-manylinux1_x86_64.whl torchvision"
   - TEST=tensorflow
   - TEST=theano
 matrix:
