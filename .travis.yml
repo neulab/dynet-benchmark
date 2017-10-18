@@ -3,12 +3,34 @@ language: python
 python:
   - 2.7
 env:
-  - TEST=dynet
-  - TEST=chainer
-  - TEST=theano
-matrix:
+  global:
+    - DYNET_PATH=$PWD/dynet EIGEN_PATH=$PWD/eigen DYFLAGS="--dynet-mem 2048" 
+  matrix:
+    - TEST=dynet TASK=rnnlm-batch
+    - TEST=dynet TASK=sparse-rnnlm-batch
+    - TEST=dynet TASK=bilstm-tagger
+    - TEST=dynet TASK=bilstm-tagger-withchar
+    - TEST=dynet TASK=treenn
+    - TEST=chainer TASK=rnnlm-batch
+    - TEST=chainer TASK=bilstm-tagger
+    - TEST=chainer TASK=bilstm-tagger-withchar
+    - TEST=chainer TASK=treenn
+    - TEST=theano TASK=rnnlm-batch
+    - TEST=theano TASK=bilstm-tagger
+    - TEST=theano TASK=bilstm-tagger-withchar
+cache:
+  directories:
+    - dynet
+    - eigen
+stages:
+  - compile
+  - test
+jobs:
   include:
-    - env: TEST=dynet-cpp
+    - stage: compile
+      env:
+      language: cpp
+      python:
       addons:
         apt:
           sources:
@@ -17,10 +39,10 @@ matrix:
           packages:
             - g++-4.8
             - libboost-regex1.55-dev
-      install:
+      install: skip
+      script:
         - hg clone https://bitbucket.org/eigen/eigen -r 699b659
         - git clone https://github.com/clab/dynet
-        - export DYNET_PATH=$PWD/dynet EIGEN_PATH=$PWD/eigen
         - mkdir dynet/build
         - cd dynet/build
         - cmake .. -DEIGEN3_INCLUDE_DIR=$TRAVIS_BUILD_DIR/eigen
@@ -28,13 +50,34 @@ matrix:
         - cd $TRAVIS_BUILD_DIR/dynet-cpp
         - make -j$(nproc) DYNET_PATH=$DYNET_PATH EIGEN_PATH=$EIGEN_PATH
         - cd $TRAVIS_BUILD_DIR
+    - stage: test
+    - language: cpp
+      python:
+      env: TEST=dynet TASK=rnnlm-batch
+      install: skip
+    - language: cpp
+      python:
+      env: TEST=dynet TASK=sparse-rnnlm-batch
+      install: skip
+    - language: cpp
+      python:
+      env: TEST=dynet TASK=bilstm-tagger
+      install: skip
+    - language: cpp
+      python:
+      env: TEST=dynet TASK=bilstm-tagger-withchar
+      install: skip
+    - language: cpp
+      python:
+      env: TEST=dynet TASK=treenn
+      install: skip
 
 install:
   - pip install -q cython numpy
-  - pip install $TEST
+  - pip install -U $TEST
 
 script:
-  - env DYFLAGS="--dynet-mem 2048" TIMEOUT=5 LONGTIMEOUT=10 ./run-tests.sh
+  - ./run-tests.sh
   - grep '\(per_sec\|startup\)' log/*/*.log
 
 after_failure:
