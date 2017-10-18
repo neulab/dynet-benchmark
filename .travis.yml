@@ -4,7 +4,7 @@ python:
   - 2.7
 env:
   global:
-    - DYNET_PATH=$PWD/dynet EIGEN_PATH=$PWD/eigen DYFLAGS="--dynet-mem 2048" 
+    - DYNET_PATH=$PWD/dynet EIGEN_PATH=$PWD/eigen DYFLAGS="--dynet-mem 2048" TIMEOUT=400 LONGTIMEOUT=450
   matrix:
     - TEST=dynet TASK=rnnlm-batch
     - TEST=dynet TASK=sparse-rnnlm-batch
