@@ -58,12 +58,14 @@ for trial in `seq $NUM_TRIALS`; do
     for embsize in 128; do
       hidsize=$(($embsize*2))
       for mbsize in 64 16 04 01; do
-        for f in dynet-cpp dynet-py chainer theano tensorflow; do
-          if [[ $f == "dynet-cpp" ]]; then
-            runcmd $f rnnlm-seq "$mbsize $embsize $hidsize 0" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
-          fi
-          runcmd $f rnnlm-batch "$mbsize $embsize $hidsize 0" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
-        done
+        if [[ -z "$MBSIZE" || "$MBSIZE" == "$mbsize" ]]; then
+          for f in dynet-cpp dynet-py chainer theano tensorflow; do
+            if [[ $f == "dynet-cpp" ]]; then
+              runcmd $f rnnlm-seq "$mbsize $embsize $hidsize 0" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
+            fi
+            runcmd $f rnnlm-batch "$mbsize $embsize $hidsize 0" $f-ms$mbsize-es$embsize-hs$hidsize-sp0-t$trial
+          done
+        fi
       done
     done
   fi
@@ -73,9 +75,11 @@ for trial in `seq $NUM_TRIALS`; do
     for embsize in 128; do
       hidsize=$(($embsize*2))
       for mbsize in 16 01; do
-        for f in dynet-cpp dynet-py; do
-          runcmd $f rnnlm-batch "$mbsize $embsize $hidsize 1" $f-ms$mbsize-es$embsize-hs$hidsize-sp1-t$trial
-        done
+        if [[ -z "$MBSIZE" || "$MBSIZE" == "$mbsize" ]]; then
+          for f in dynet-cpp dynet-py; do
+            runcmd $f rnnlm-batch "$mbsize $embsize $hidsize 1" $f-ms$mbsize-es$embsize-hs$hidsize-sp1-t$trial
+          done
+        fi
       done
     done
   fi

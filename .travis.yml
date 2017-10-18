@@ -4,18 +4,28 @@ python:
   - 2.7
 env:
   global:
-    - DYNET_PATH=$PWD/dynet EIGEN_PATH=$PWD/eigen DYFLAGS="--dynet-mem 2048" TIMEOUT=400 LONGTIMEOUT=450
+    - DYNET_PATH=$PWD/dynet EIGEN_PATH=$PWD/eigen DYFLAGS="--dynet-mem 2048" TIMEOUT=200 LONGTIMEOUT=300
   matrix:
-    - TEST=dynet TASK=rnnlm-batch
-    - TEST=dynet TASK=sparse-rnnlm-batch
+    - TEST=dynet TASK=rnnlm-batch MBSIZE=64
+    - TEST=dynet TASK=rnnlm-batch MBSIZE=16
+    - TEST=dynet TASK=rnnlm-batch MBSIZE=04
+    - TEST=dynet TASK=rnnlm-batch MBSIZE=01
+    - TEST=dynet TASK=sparse-rnnlm-batch MBSIZE=16
+    - TEST=dynet TASK=sparse-rnnlm-batch MBSIZE=01
     - TEST=dynet TASK=bilstm-tagger
     - TEST=dynet TASK=bilstm-tagger-withchar
     - TEST=dynet TASK=treenn
-    - TEST=chainer TASK=rnnlm-batch
+    - TEST=chainer TASK=rnnlm-batch MBSIZE=64
+    - TEST=chainer TASK=rnnlm-batch MBSIZE=16
+    - TEST=chainer TASK=rnnlm-batch MBSIZE=04
+    - TEST=chainer TASK=rnnlm-batch MBSIZE=01
     - TEST=chainer TASK=bilstm-tagger
     - TEST=chainer TASK=bilstm-tagger-withchar
     - TEST=chainer TASK=treenn
-    - TEST=theano TASK=rnnlm-batch
+    - TEST=theano TASK=rnnlm-batch MBSIZE=64
+    - TEST=theano TASK=rnnlm-batch MBSIZE=16
+    - TEST=theano TASK=rnnlm-batch MBSIZE=04
+    - TEST=theano TASK=rnnlm-batch MBSIZE=01
     - TEST=theano TASK=bilstm-tagger
     - TEST=theano TASK=bilstm-tagger-withchar
 cache:
@@ -41,36 +51,33 @@ jobs:
             - libboost-regex1.55-dev
       install: skip
       script:
-        - hg clone https://bitbucket.org/eigen/eigen -r 699b659
-        - git clone https://github.com/clab/dynet
-        - mkdir dynet/build
+        - hg clone https://bitbucket.org/eigen/eigen -r 699b659 || (cd eigen && hg pull && hg update -r 699b659)
+        - git clone https://github.com/clab/dynet || (cd dynet; git pull)
+        - mkdir -p dynet/build
         - cd dynet/build
         - cmake .. -DEIGEN3_INCLUDE_DIR=$TRAVIS_BUILD_DIR/eigen
         - make -j$(nproc)
-        - cd $TRAVIS_BUILD_DIR/dynet-cpp
-        - make -j$(nproc) DYNET_PATH=$DYNET_PATH EIGEN_PATH=$EIGEN_PATH
-        - cd $TRAVIS_BUILD_DIR
     - stage: test
     - language: cpp
       python:
       env: TEST=dynet TASK=rnnlm-batch
-      install: skip
+      install: cd $TRAVIS_BUILD_DIR/dynet-cpp && make -j$(nproc) DYNET_PATH=$DYNET_PATH EIGEN_PATH=$EIGEN_PATH $TASK && cd $TRAVIS_BUILD_DIR
     - language: cpp
       python:
       env: TEST=dynet TASK=sparse-rnnlm-batch
-      install: skip
+      install: cd $TRAVIS_BUILD_DIR/dynet-cpp && make -j$(nproc) DYNET_PATH=$DYNET_PATH EIGEN_PATH=$EIGEN_PATH $TASK && cd $TRAVIS_BUILD_DIR
     - language: cpp
       python:
       env: TEST=dynet TASK=bilstm-tagger
-      install: skip
+      install: cd $TRAVIS_BUILD_DIR/dynet-cpp && make -j$(nproc) DYNET_PATH=$DYNET_PATH EIGEN_PATH=$EIGEN_PATH $TASK && cd $TRAVIS_BUILD_DIR
     - language: cpp
       python:
       env: TEST=dynet TASK=bilstm-tagger-withchar
-      install: skip
+      install: cd $TRAVIS_BUILD_DIR/dynet-cpp && make -j$(nproc) DYNET_PATH=$DYNET_PATH EIGEN_PATH=$EIGEN_PATH $TASK && cd $TRAVIS_BUILD_DIR
     - language: cpp
       python:
       env: TEST=dynet TASK=treenn
-      install: skip
+      install: cd $TRAVIS_BUILD_DIR/dynet-cpp && make -j$(nproc) DYNET_PATH=$DYNET_PATH EIGEN_PATH=$EIGEN_PATH $TASK && cd $TRAVIS_BUILD_DIR
 
 install:
   - pip install -q cython numpy
