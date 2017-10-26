@@ -118,7 +118,7 @@ class TreeLSTMBuilder(object):
         bi,bo,bu,bf = [dy.parameter(b) for b in self.BS]
         e = dy.concatenate([e1,e2])
         i = dy.logistic(dy.affine_transform([bi, Ui, e]))
-        o = dy.logistic(dy.affine_transform([bi, Uo, e]))
+        o = dy.logistic(dy.affine_transform([bo, Uo, e]))
         f1 = dy.logistic(dy.affine_transform([bf, Uf1, e1]))
         f2 = dy.logistic(dy.affine_transform([bf, Uf2, e2]))
         u = dy.tanh(     dy.affine_transform([bu, Uu, e]))

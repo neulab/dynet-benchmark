@@ -17,7 +17,6 @@
 using namespace std;
 using namespace std::chrono;
 using namespace dynet;
-using namespace dynet::expr;
 
 // Read a file where each line is of the form "word1|tag1 word2|tag2 ..."
 // Yields pairs of lists of the form < [word1, word2, ...], [tag1, tag2, ...] >

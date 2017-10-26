@@ -16,7 +16,6 @@
 using namespace std;
 using namespace std::chrono;
 using namespace dynet;
-using namespace dynet::expr;
 
 class Tree {
 public:

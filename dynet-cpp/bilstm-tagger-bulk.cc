@@ -17,7 +17,6 @@
 using namespace std;
 using namespace std::chrono;
 using namespace dynet;
-using namespace dynet::expr;
 
 // Read a file where each line is of the form "word1|tag1 word2|tag2 ..."
 // Yields pairs of lists of the form < [word1, word2, ...], [tag1, tag2, ...] >
@@ -110,8 +109,8 @@ public:
     return sum(errs);
   }
 
-  vector<string> tag_sent(vector<string> & words) {
-    ComputationGraph cg;
+  vector<string> tag_sent(vector<string> & words, ComputationGraph &cg) {
+    cg.clear();
     init(cg);
     vector<Expression> exprs = build_tagging_graph(cg, words), errs(words.size());
     vector<string> tags(words.size());
@@ -177,6 +176,7 @@ int main(int argc, char**argv) {
   int i = 0, bi = 0, all_tagged = 0, this_words = 0;
   float this_loss = 0.f, all_time = 0.f;
   unsigned batch = BATCH_SIZE;
+  ComputationGraph cg;
   for(int iter = 0; iter < 100; iter++) {
     for(size_t id1 = 0; id1 <= train.size()-batch; id1 += batch) {
       i += batch;
@@ -194,7 +194,7 @@ int main(int argc, char**argv) {
         int dev_words = 0, dev_good = 0;
         float dev_loss = 0;
         for(auto & sent : dev) {
-          vector<string> tags = tagger.tag_sent(sent.first);
+          vector<string> tags = tagger.tag_sent(sent.first, cg);
           for(size_t j = 0; j < tags.size(); ++j)
             if(tags[j] == sent.second[j])
               dev_good++;
@@ -206,7 +206,7 @@ int main(int argc, char**argv) {
         start = system_clock::now();
       }
 
-      ComputationGraph cg;
+      cg.clear();
       tagger.init(cg);
       vector<Expression> losses;
       for(size_t id2 = 0; id2 < batch; ++id2) {
