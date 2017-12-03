@@ -58,7 +58,7 @@ class RNNLM(nn.Module):
     def __init__(self):
         super(RNNLM, self).__init__()
         self.embeddings = nn.Embedding(vocab_size, args.EMBED_SIZE)
-        self.rnn = nn.RNN(args.EMBED_SIZE, args.HIDDEN_SIZE)
+        self.rnn = nn.LSTM(args.EMBED_SIZE, args.HIDDEN_SIZE)
         self.proj = nn.Linear(args.HIDDEN_SIZE, vocab_size)
     def forward(self, sequences):
         rnn_output, _ = self.rnn(self.embeddings(sequences))
