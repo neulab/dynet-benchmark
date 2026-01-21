@@ -90,8 +90,10 @@ for trial in `seq $NUM_TRIALS`; do
     hidsize=50
     mlpsize=32
     for f in dynet-cpp dynet-py chainer theano tensorflow; do
-      runcmd $f bilstm-tagger "$wembsize $hidsize $mlpsize 0" $f-ws$wembsize-hs$hidsize-mlps$mlpsize-su0-t$trial
-      if [[ $f == dynet* ]]; then
+      if [[ -z "$SU" || "$SU" == 0 ]]; then
+        runcmd $f bilstm-tagger "$wembsize $hidsize $mlpsize 0" $f-ws$wembsize-hs$hidsize-mlps$mlpsize-su0-t$trial
+      fi
+      if [[ $f == dynet* && ( -z "$SU" || "$SU" == 1 ) ]]; then
         runcmd $f bilstm-tagger "$wembsize $hidsize $mlpsize 1" $f-ws$wembsize-hs$hidsize-mlps$mlpsize-su1-t$trial
       fi
     done
@@ -104,8 +106,10 @@ for trial in `seq $NUM_TRIALS`; do
     hidsize=50
     mlpsize=32
     for f in dynet-cpp dynet-py theano chainer; do
-      runcmd $f bilstm-tagger-withchar "$cembsize $wembsize $hidsize $mlpsize 0" $f-cs$cembsize-ws$wembsize-hs$hidsize-mlps$mlpsize-su0-t$trial
-      if [[ $f == dynet* ]]; then
+      if [[ -z "$SU" || "$SU" == 0 ]]; then
+        runcmd $f bilstm-tagger-withchar "$cembsize $wembsize $hidsize $mlpsize 0" $f-cs$cembsize-ws$wembsize-hs$hidsize-mlps$mlpsize-su0-t$trial
+      fi
+      if [[ $f == dynet* && ( -z "$SU" || "$SU" == 1 ) ]]; then
         runcmd $f bilstm-tagger-withchar "$cembsize $wembsize $hidsize $mlpsize 1" $f-cs$cembsize-ws$wembsize-hs$hidsize-mlps$mlpsize-su1-t$trial
       fi
     done
@@ -116,8 +120,10 @@ for trial in `seq $NUM_TRIALS`; do
     wembsize=128
     hidsize=128
     for f in dynet-cpp dynet-py chainer; do
-      runcmd $f treenn "$wembsize $hidsize 0" $f-ws$wembsize-hs$hidsize-su0-t$trial
-      if [[ $f == dynet* ]]; then
+      if [[ -z "$SU" || "$SU" == 0 ]]; then
+        runcmd $f treenn "$wembsize $hidsize 0" $f-ws$wembsize-hs$hidsize-su0-t$trial
+      fi
+      if [[ $f == dynet* && ( -z "$SU" || "$SU" == 1 ) ]]; then
         runcmd $f treenn "$wembsize $hidsize 1" $f-ws$wembsize-hs$hidsize-su1-t$trial
       fi
     done

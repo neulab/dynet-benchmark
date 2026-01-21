@@ -1,10 +1,148 @@
 dist: trusty
 language: python
-python:
-  - 2.7
+python: 2.7
+cache:
+  directories:
+    - dynet
+    - eigen
+    - dynet-cpp/build
+stages:
+  - compile
+  - test
+jobs:
+  include:
+    - stage: compile
+      language: cpp
+      python:
+      env:
+      addons:
+        apt:
+          sources:
+            - boost-latest
+          packages:
+            - libboost-regex1.55-dev
+      install:
+        - hg clone https://bitbucket.org/eigen/eigen -r 699b659 || (cd eigen && hg pull && hg update -r 699b659)
+        - git clone https://github.com/clab/dynet || (cd dynet; git pull)
+      script:
+        - mkdir -p dynet/build
+        - cd dynet/build
+        - cmake .. -DEIGEN3_INCLUDE_DIR=$TRAVIS_BUILD_DIR/eigen
+        - make -j$(nproc)
+        - cd ../../dynet-cpp
+        - make -j$(nproc) DYNET_PATH=$DYNET_PATH EIGEN_PATH=$EIGEN_PATH
+    - stage: test
+      language: cpp
+      python:
+      env:
+      install:
+        - ln -s build/rnnlm-batch dynet-cpp
+        - export TASK=rnnlm-batch MBSIZE=64
+    - language: cpp
+      python:
+      env:
+      install:
+        - ln -s build/rnnlm-batch dynet-cpp
+        - export TASK=rnnlm-batch MBSIZE=16
+    - language: cpp
+      python:
+      env:
+      install:
+        - ln -s build/rnnlm-batch dynet-cpp
+        - export TASK=rnnlm-batch MBSIZE=04
+    - language: cpp
+      python:
+      env:
+      install:
+        - ln -s build/rnnlm-batch dynet-cpp
+        - export TASK=rnnlm-batch MBSIZE=01
+    - language: cpp
+      python:
+      env:
+      install:
+        - ln -s build/rnnlm-batch dynet-cpp
+        - export TASK=sparse-rnnlm-batch MBSIZE=16
+    - language: cpp
+      python:
+      env:
+      install:
+        - ln -s build/rnnlm-batch dynet-cpp
+        - export TASK=sparse-rnnlm-batch MBSIZE=01
+    - language: cpp
+      python:
+      env:
+      addons:
+        apt:
+          sources:
+            - boost-latest
+          packages:
+            - libboost-regex1.55-dev
+      install:
+        - ln -s build/bilstm-tagger dynet-cpp
+        - export TASK=bilstm-tagger SU=0
+    - language: cpp
+      python:
+      env:
+      addons:
+        apt:
+          sources:
+            - boost-latest
+          packages:
+            - libboost-regex1.55-dev
+      install:
+        - ln -s build/bilstm-tagger dynet-cpp
+        - export TASK=bilstm-tagger SU=1
+    - language: cpp
+      python:
+      env:
+      addons:
+        apt:
+          sources:
+            - boost-latest
+          packages:
+            - libboost-regex1.55-dev
+      install:
+        - ln -s build/bilstm-tagger-withchar dynet-cpp
+        - export TASK=bilstm-tagger-withchar SU=0
+    - language: cpp
+      python:
+      env:
+      addons:
+        apt:
+          sources:
+            - boost-latest
+          packages:
+            - libboost-regex1.55-dev
+      install:
+        - ln -s build/bilstm-tagger-withchar dynet-cpp
+        - export TASK=bilstm-tagger-withchar SU=1
+    - language: cpp
+      python:
+      env:
+      addons:
+        apt:
+          sources:
+            - boost-latest
+          packages:
+            - libboost-regex1.55-dev
+      install:
+        - ln -s build/treenn dynet-cpp
+        - export TASK=treenn SU=0
+    - language: cpp
+      python:
+      env:
+      addons:
+        apt:
+          sources:
+            - boost-latest
+          packages:
+            - libboost-regex1.55-dev
+      install:
+        - ln -s build/treenn dynet-cpp
+        - export TASK=treenn SU=1
 env:
   global:
-    - DYNET_PATH=$PWD/dynet EIGEN_PATH=$PWD/eigen DYFLAGS="--dynet-mem 2048" TIMEOUT=200 LONGTIMEOUT=300
+    - DYNET_PATH=$PWD/dynet EIGEN_PATH=$PWD/eigen DYFLAGS="--dynet-mem 2048" TIMEOUT=400 LONGTIMEOUT=430
   matrix:
     - TEST=dynet TASK=rnnlm-batch MBSIZE=64
     - TEST=dynet TASK=rnnlm-batch MBSIZE=16
@@ -12,9 +150,12 @@ env:
     - TEST=dynet TASK=rnnlm-batch MBSIZE=01
     - TEST=dynet TASK=sparse-rnnlm-batch MBSIZE=16
     - TEST=dynet TASK=sparse-rnnlm-batch MBSIZE=01
-    - TEST=dynet TASK=bilstm-tagger
-    - TEST=dynet TASK=bilstm-tagger-withchar
-    - TEST=dynet TASK=treenn
+    - TEST=dynet TASK=bilstm-tagger SU=0
+    - TEST=dynet TASK=bilstm-tagger SU=1
+    - TEST=dynet TASK=bilstm-tagger-withchar SU=0
+    - TEST=dynet TASK=bilstm-tagger-withchar SU=1
+    - TEST=dynet TASK=treenn SU=0
+    - TEST=dynet TASK=treenn SU=1
     - TEST=chainer TASK=rnnlm-batch MBSIZE=64
     - TEST=chainer TASK=rnnlm-batch MBSIZE=16
     - TEST=chainer TASK=rnnlm-batch MBSIZE=04
@@ -28,56 +169,6 @@ env:
     - TEST=theano TASK=rnnlm-batch MBSIZE=01
     - TEST=theano TASK=bilstm-tagger
     - TEST=theano TASK=bilstm-tagger-withchar
-cache:
-  directories:
-    - dynet
-    - eigen
-stages:
-  - compile
-  - test
-jobs:
-  include:
-    - stage: compile
-      env:
-      language: cpp
-      python:
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - boost-latest
-          packages:
-            - g++-4.8
-            - libboost-regex1.55-dev
-      install: skip
-      script:
-        - hg clone https://bitbucket.org/eigen/eigen -r 699b659 || (cd eigen && hg pull && hg update -r 699b659)
-        - git clone https://github.com/clab/dynet || (cd dynet; git pull)
-        - mkdir -p dynet/build
-        - cd dynet/build
-        - cmake .. -DEIGEN3_INCLUDE_DIR=$TRAVIS_BUILD_DIR/eigen
-        - make -j$(nproc)
-    - stage: test
-    - language: cpp
-      python:
-      env: TEST=dynet TASK=rnnlm-batch
-      install: cd $TRAVIS_BUILD_DIR/dynet-cpp && make -j$(nproc) DYNET_PATH=$DYNET_PATH EIGEN_PATH=$EIGEN_PATH $TASK && cd $TRAVIS_BUILD_DIR
-    - language: cpp
-      python:
-      env: TEST=dynet TASK=sparse-rnnlm-batch
-      install: cd $TRAVIS_BUILD_DIR/dynet-cpp && make -j$(nproc) DYNET_PATH=$DYNET_PATH EIGEN_PATH=$EIGEN_PATH $TASK && cd $TRAVIS_BUILD_DIR
-    - language: cpp
-      python:
-      env: TEST=dynet TASK=bilstm-tagger
-      install: cd $TRAVIS_BUILD_DIR/dynet-cpp && make -j$(nproc) DYNET_PATH=$DYNET_PATH EIGEN_PATH=$EIGEN_PATH $TASK && cd $TRAVIS_BUILD_DIR
-    - language: cpp
-      python:
-      env: TEST=dynet TASK=bilstm-tagger-withchar
-      install: cd $TRAVIS_BUILD_DIR/dynet-cpp && make -j$(nproc) DYNET_PATH=$DYNET_PATH EIGEN_PATH=$EIGEN_PATH $TASK && cd $TRAVIS_BUILD_DIR
-    - language: cpp
-      python:
-      env: TEST=dynet TASK=treenn
-      install: cd $TRAVIS_BUILD_DIR/dynet-cpp && make -j$(nproc) DYNET_PATH=$DYNET_PATH EIGEN_PATH=$EIGEN_PATH $TASK && cd $TRAVIS_BUILD_DIR
 
 install:
   - pip install -q cython numpy
